@@ -1,8 +1,13 @@
 #include "../server/main.h"
+#include "tftp_client.cpp"
 
 using namespace std;
 
 int main(int argc, char **  argv) {
+
+  char ip[15] = "192.168.1.0";
+
+  TFTPClient client(ip);
 
   //- socket'o endpoint'u strukturos
   struct sockaddr_in client_address;
