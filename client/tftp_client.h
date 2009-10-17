@@ -1,15 +1,21 @@
+#ifndef TFTPCLIENT
+#define TFTPCLIENT
 
 class TFTPClient {
 
   private:
 
-    char server_ip[15]; 
+    char* server_ip;
 
   protected:
 
+    //- socket'o endpoint'u strukturos
+    struct sockaddr_in client_address;
 
   public:
 
-  TFTPClient(char ** ip);
+  TFTPClient(char* ip);
 
 };
+
+#endif
