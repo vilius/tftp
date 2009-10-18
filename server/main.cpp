@@ -4,13 +4,7 @@ using namespace std;
 
 int main(int argc, char **  argv) {
 
-  //- socket'o endpoint'u strukturos
-  struct sockaddr_in server_address;
-  struct sockaddr_in client_address;
-
-  int listener;
-
-  //- deskriptoriu rinkiniai 
+  // deskriptoriu rinkiniai 
   fd_set read_set;
   fd_set master_set;
   int fd_max;
@@ -27,8 +21,6 @@ int main(int argc, char **  argv) {
 
   cout << "Starting TFTP server\n";
 
-  server_socket_descriptor = socket(PF_INET, SOCK_STREAM, 0);
- 
   if (server_socket_descriptor == -1) {
     
     cout << "Failed to create a socket\n";
