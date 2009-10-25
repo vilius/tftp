@@ -5,7 +5,11 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <exception>
+#include <vector>
+
+#include "../client/tftp_packet.h"
 
 #define DEBUG
 
@@ -22,6 +26,15 @@
 
 #endif
 
-#define PORT 5555
+#define TFTP_ERROR_0 "Not defined, see error message (if any)"
+#define TFTP_ERROR_1 "File not found"
+#define TFTP_ERROR_2 "Access violation"
+#define TFTP_ERROR_3 "Disk full or allocation exceeded"
+#define TFTP_ERROR_4 "Illegal TFTP operation"
+#define TFTP_ERROR_5 "Unknown transfer ID"
+#define TFTP_ERROR_6 "File already exists"
+#define TFTP_ERROR_7 "No such user"
+
+#define TFTP_SERVER_ROOT "F:/Documents and Settings/Vilius/Desktop/tftp/server/ftproot/"
 
 #endif

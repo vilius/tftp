@@ -1,35 +1,39 @@
 #include "../server/main.h"
+
+#include "tftp_packet.h"
 #include "tftp_client.h"
 
 using namespace std;
 
 TFTPClient::TFTPClient(char* ip) {
 
-  server_ip = ip;
+	TFTP_Packet packet;
 
-  //- standartines reiksmes
+	server_ip = ip;
 
-  socket_descriptor = -1;
+	//- standartines reiksmes
 
-  //- wsa
+	socket_descriptor = -1;
 
-  #ifdef WIN32
+	//- wsa
 
-  /* edited */
+	#ifdef WIN32
 
-    WSADATA wsaData;
+		/* edited */
 
-    WORD wVersionRequested = MAKEWORD(2, 2);
+		WSADATA wsaData;
 
-    int err = WSAStartup(wVersionRequested, &wsaData);
+		WORD wVersionRequested = MAKEWORD(2, 2);
 
-    if (err != 0) {
+		int err = WSAStartup(wVersionRequested, &wsaData);
 
-        throw new ETFTPSocketInitialize;
-        
-    }
+		if (err != 0) {
 
-  #endif
+			throw new ETFTPSocketInitialize;
+		    
+		}
+
+	#endif
 
 }
 
@@ -43,10 +47,10 @@ int TFTPClient::connectToServer() {
 
     }
 
-    debugMessage("Socket created");
+    DEBUGMSG("Socket created");
 
     client_address.sin_family = AF_INET;
-    client_address.sin_port = PORT;
+	client_address.sin_port = htons(5555);	//- taip pat turi buti ir serveryje!
     client_address.sin_addr.s_addr = inet_addr(this->server_ip);
 
     #ifdef WIN32
@@ -63,9 +67,7 @@ int TFTPClient::connectToServer() {
         
     }
 
-    debugMessage("Successfully connected");
-
-    sendBuffer("hellow world");
+    DEBUGMSG("Successfully connected");
 
     return 1;
 
@@ -74,6 +76,132 @@ int TFTPClient::connectToServer() {
 int TFTPClient::sendBuffer(char *buffer) {
 
     return send(socket_descriptor, buffer, (int)strlen(buffer), 0);
+
+}
+
+int TFTPClient::sendPacket(TFTP_Packet* packet) {
+
+	return send(socket_descriptor, (char*)packet->getData(), packet->getSize(), 0);
+
+}
+
+unsigned char* TFTPClient::getFile(char* filename) {
+
+	TFTP_Packet packet;
+
+	packet.createRRQ(filename);
+
+	packet.dumpData();
+
+	sendPacket(&packet);
+
+	waitForPacketACK(0, 1000);
+
+	return packet.getData(0);
+
+}
+
+bool TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
+
+	packet->clear();
+
+	FD_SET fd_reader;		  // soketu masyvo struktura
+	timeval connection_timer; // laiko struktura perduodama select()
+
+	connection_timer.tv_sec = timeout_ms / 1000; // s
+	connection_timer.tv_usec = 0; // neveikia o.0 timeout_ms; // ms 
+
+	FD_ZERO(&fd_reader);
+
+	// laukiam, kol bus ka nuskaityti
+	FD_SET(socket_descriptor, &fd_reader);
+
+	int select_ready = select(0, &fd_reader, NULL, &fd_reader, &connection_timer);
+
+	if (select_ready == -1) {
+
+		DEBUGMSG("Error in select()");
+		return false;
+
+	} else if (select_ready == 0) {
+
+		DEBUGMSG("Timeout");
+		return false;
+
+	}
+
+	//- turim sekminga event`a
+
+	int receive_status;
+
+	receive_status = recv(socket_descriptor, (char*)packet->getData(), TFTP_PACKET_MAX_SIZE, 0);
+
+	if (receive_status == 0) {
+		cout << "Connection was closed by client\n";
+		return false;
+    }
+
+	if (receive_status == SOCKET_ERROR)	{
+		DEBUGMSG("recv() error in waitForPackage()");
+		return false;
+	}
+
+	//- receive_status - gautu duomenu dydis
+
+	packet->setSize(receive_status);
+
+	return true;
+
+}
+
+bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
+
+	TFTP_Packet received_packet;
+
+	if (waitForPacket(&received_packet, 1000)) {
+
+		if (received_packet.isError()) {
+
+			errorReceived(&received_packet);
+
+		}
+
+		if (received_packet.isData()) {
+
+			cout << "klas";
+
+		}
+
+	}
+
+	return true;
+
+}
+
+void TFTPClient::errorReceived(TFTP_Packet* packet) {
+
+	int error_code = packet->getWord(2);
+
+	cout << "Error! Error code: " << error_code << endl;
+	cout << "Error message: ";
+	
+	switch (error_code) {
+
+		case 1: cout << TFTP_ERROR_1; break;
+		case 2: cout << TFTP_ERROR_2; break;
+		case 3: cout << TFTP_ERROR_3; break;
+		case 4: cout << TFTP_ERROR_4; break;
+		case 5: cout << TFTP_ERROR_5; break;
+		case 6: cout << TFTP_ERROR_6; break;
+		case 7: cout << TFTP_ERROR_7; break;
+		case 0: 
+		default: cout << TFTP_ERROR_0; break;
+
+	}
+
+	cout << endl;
+
+	TFTPClient::~TFTPClient();
 
 }
 
@@ -96,7 +224,7 @@ TFTPClient::~TFTPClient() {
 
 }
 
-void debugMessage(char *msg) {
+void DEBUGMSG(char *msg) {
     #ifdef DEBUG
 	std::cout << msg << "\n";
     #endif

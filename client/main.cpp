@@ -1,3 +1,9 @@
+/**
+
+	Client
+
+**/
+
 #include "../server/main.h"
 #include "tftp_client.h"
 
@@ -19,6 +25,8 @@ int main(int argc, char ** argv) {
       
   }
 
+  client.getFile("readme.txt");
+
   client.~TFTPClient();
 
   //- deskriptoriu rinkiniai 
@@ -30,7 +38,7 @@ int main(int argc, char ** argv) {
   FD_ZERO(&master_set);
   FD_ZERO(&read_set);
 
-  cout << "TFTP Server was shut down\n";
+  cout << "Disconnected\n";
 
   int foo;
 

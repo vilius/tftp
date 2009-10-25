@@ -1,10 +1,22 @@
-#include "./main.h"
+/**
+
+	Server
+
+**/
+
+#include "main.h"
+#include "tftp_server.h"
 
 using namespace std;
 
 int main(int argc, char **  argv) {
 
-  // deskriptoriu rinkiniai 
+	cout << "Starting TFTP server\n";
+
+	TFTPServer server(5555, "F:/Documents and Settings/Vilius/Desktop/tftp/server/ftproot/");
+
+	
+ /* // deskriptoriu rinkiniai 
   fd_set read_set;
   fd_set master_set;
   int fd_max;
@@ -18,44 +30,6 @@ int main(int argc, char **  argv) {
   FD_ZERO(&read_set);
 
   socklen_t client_address_length;
-
-  cout << "Starting TFTP server\n";
-
-  if (server_socket_descriptor == -1) {
-    
-    cout << "Failed to create a socket\n";
-
-    return -1;
-
-  }
-
-  cout << "Socket created\n";
-
-  server_address.sin_family = AF_INET;
-  server_address.sin_port = PORT;
-  server_address.sin_addr.s_addr = INADDR_ANY; //- pribindinam nezinodami serverio interfeiso, prie visu egzistuojanciu interfeisu
-
-#ifdef WIN32
-  memset(server_address.sin_zero, 0, sizeof(server_address.sinzero); //- suvienodinam SOCKADDR_IN ir SOCKADDR strukturu dydzius
-#endif
-
-  listener = bind(server_socket_descriptor, (const struct sockaddr *)&server_address, sizeof(server_address));
-
-  if (listener != 0) {
-      cout << "Unable to bind an address\n";
-      close(server_socket_descriptor);
-      return -1;
-  }
-
-  listener = listen(server_socket_descriptor, 10);
-
-  if (listener != 0) {
-      cout << "Unable to start listening for incoming connectinos\n";
-      close(server_socket_descriptor);
-      return -1;
-  }
-
-  cout << "Listening started on port " << PORT << "\n";
 
   FD_SET(server_socket_descriptor, &master_set);
   fd_max = server_socket_descriptor + 1;
@@ -100,7 +74,7 @@ int main(int argc, char **  argv) {
 				  
 				  if ((recv_size = recv(i, buf, sizeof(buf),0)) <= 0)
                     {
-                        if (recv_size == 0) /* connection closed print notification */
+                        if (recv_size == 0) 
                         {
                             cout << "Connection closed/n";
                         }
@@ -125,8 +99,7 @@ int main(int argc, char **  argv) {
       }
 
   }
-
-  close(server_socket_descriptor);
+ */
 
   cout << "TFTP Server was shut down\n";
 

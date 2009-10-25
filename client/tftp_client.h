@@ -1,31 +1,40 @@
-#include "../server/main.h"
-
 #ifndef TFTPCLIENT
 #define TFTPCLIENT
 
+#include "tftp_packet.h"
+
 class TFTPClient {
 
-  private:
+	private:
 
-    char* server_ip;
+		char* server_ip;
 
-    //- kliento socketo descriptorius
-    int socket_descriptor;
+		//- kliento socketo descriptorius
+		int socket_descriptor;
 
-    //- socket'o endpoint'u strukturos
-    struct sockaddr_in client_address;
-    int connection;
+		//- socket'o endpoint'u strukturos
+		struct sockaddr_in client_address;
+		int connection;
 
-  protected:
+		//TFTP_Packet packet;
 
-    int sendBuffer(char *);
+	protected:
 
-  public:
+		int sendBuffer(char *);
+		int sendPacket(TFTP_Packet* packet);
 
-  TFTPClient(char* ip);
-  ~TFTPClient();
+	public:
 
-  int connectToServer();
+		TFTPClient(char* ip);
+		~TFTPClient();
+
+		int connectToServer();
+		unsigned char* getFile(char* filename);
+
+		bool waitForPacket(TFTP_Packet* packet, int timeout_ms);
+		bool waitForPacketACK(int packet_number, int timeout_ms);
+
+		void errorReceived(TFTP_Packet* packet);
 
 };
 
@@ -41,6 +50,6 @@ class ETFTPSocketInitialize: public std::exception {
   }
 };
 
-void debugMessage(char*);
+void DEBUGMSG(char*);
 
 #endif
