@@ -46,6 +46,7 @@ class TFTP_Packet {
 		BYTE getByte(int offset);
 		WORD getWord(int offset = 0);
 		bool getString(int offset, char* buffer, int length);
+		WORD getNumber();
 
 		bool createRRQ(char* filename);
 		bool createWRQ(char* filename);

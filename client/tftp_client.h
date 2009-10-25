@@ -3,6 +3,8 @@
 
 #include "tftp_packet.h"
 
+#define TFTP_CLIENT_SERVER_TIMEOUT 1000
+
 class TFTPClient {
 
 	private:
@@ -16,7 +18,7 @@ class TFTPClient {
 		struct sockaddr_in client_address;
 		int connection;
 
-		//TFTP_Packet packet;
+		TFTP_Packet received_packet;
 
 	protected:
 
@@ -31,8 +33,9 @@ class TFTPClient {
 		int connectToServer();
 		unsigned char* getFile(char* filename);
 
-		bool waitForPacket(TFTP_Packet* packet, int timeout_ms);
-		bool waitForPacketACK(int packet_number, int timeout_ms);
+		bool waitForPacket(TFTP_Packet* packet, int timeout_ms = TFTP_CLIENT_SERVER_TIMEOUT);
+		bool waitForPacketACK(int packet_number, int timeout_ms = TFTP_CLIENT_SERVER_TIMEOUT);
+		bool waitForPacketData(int packet_number, int timeout_ms = TFTP_CLIENT_SERVER_TIMEOUT);
 
 		void errorReceived(TFTP_Packet* packet);
 

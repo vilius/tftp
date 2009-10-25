@@ -91,11 +91,28 @@ unsigned char* TFTPClient::getFile(char* filename) {
 
 	packet.createRRQ(filename);
 
-	packet.dumpData();
+	//packet.dumpData();
 
 	sendPacket(&packet);
 
-	waitForPacketACK(0, 1000);
+	int last_packet_no = 1;
+
+	while (true) {
+
+		if (!waitForPacketData(last_packet_no, TFTP_CLIENT_SERVER_TIMEOUT)) {
+			
+			received_packet.dumpData();
+			break;
+
+		}
+
+		last_packet_no++;
+
+		received_packet.dumpData();
+
+		cout << received_packet.getNumber();
+
+	}
 
 	return packet.getData(0);
 
@@ -147,7 +164,7 @@ bool TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
 	}
 
 	//- receive_status - gautu duomenu dydis
-
+	
 	packet->setSize(receive_status);
 
 	return true;
@@ -168,13 +185,37 @@ bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
 
 		if (received_packet.isData()) {
 
-			cout << "klas";
+			return true;
 
 		}
 
 	}
 
 	return true;
+
+}
+
+bool TFTPClient::waitForPacketData(int packet_number, int timeout_ms) {
+
+	if (waitForPacket(&received_packet, timeout_ms)) {
+
+		if (received_packet.isError()) {
+
+			errorReceived(&received_packet);
+
+			return false;
+
+		}
+
+		if (received_packet.isData()) {
+			
+			return true;
+
+		}
+
+	}
+
+	return false; //- timeout occured
 
 }
 

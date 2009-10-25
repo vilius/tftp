@@ -107,6 +107,23 @@ WORD TFTP_Packet::getWord(int offset) {
 
 }
 
+WORD TFTP_Packet::getNumber() {
+
+	if (this->isData()) {
+
+		WORD hi = getByte(2);
+		WORD lo = getByte(3);
+
+		return ((hi<<8)|lo);
+
+	} else {
+
+		return 0;
+
+	}
+
+}
+
 bool TFTP_Packet::getString(int offset, char* buffer, int len) {
 
 	if (offset > current_packet_size) return false;

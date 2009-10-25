@@ -66,7 +66,8 @@ class TFTPServer {
 
     int sendBuffer(char *);
 
-	bool sendPacket(TFTP_Packet* packet, int client_socket);
+	bool sendPacket(TFTP_Packet* packet, ServerClient* client);
+	bool sendPacketData(ServerClient* client);
 
 	bool waitForPacket(TFTP_Packet* packet, int current_client_socket, int timeout_ms);
 	bool waitForPacketACK(int packet_number, int timeout_ms);
