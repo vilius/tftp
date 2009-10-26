@@ -85,15 +85,16 @@ int TFTPClient::sendPacket(TFTP_Packet* packet) {
 
 }
 
-unsigned char* TFTPClient::getFile(char* filename) {
+bool TFTPClient::getFile(char* filename) {
 
-	TFTP_Packet packet;
+	TFTP_Packet packet_rrq, packet_ack;
+	ofstream file("test.txt", ifstream::binary);
 
-	packet.createRRQ(filename);
+	char buffer[TFTP_PACKET_DATA_SIZE];
 
-	//packet.dumpData();
+	packet_rrq.createRRQ(filename);
 
-	sendPacket(&packet);
+	sendPacket(&packet_rrq);
 
 	int last_packet_no = 1;
 
@@ -106,15 +107,64 @@ unsigned char* TFTPClient::getFile(char* filename) {
 
 		}
 
-		last_packet_no++;
+		if (last_packet_no != received_packet.getNumber()) {
+			//- paketas kazkur paklydo!
 
-		received_packet.dumpData();
+			/* TFTP recognizes only one error condition that does not cause
+			   termination, the source port of a received packet being incorrect.
+			   In this case, an error packet is sent to the originating host. */
 
-		cout << received_packet.getNumber();
+		} else {
+
+			//- paketas tvarkoj
+			received_packet.dumpData();
+
+			last_packet_no++;
+
+			if (received_packet.copyData(4, buffer, TFTP_PACKET_DATA_SIZE)) {
+
+				file.write(buffer, received_packet.getSize() - 4);
+
+				//- tirkinam, ar gauti duomenis yra mazesni nei buferio dydis
+				//- jei taip, tai sis paketas buvo paskutinis
+				//- A data packet of less than 512 bytes signals termination of a transfer.
+
+				if (received_packet.getSize() - 4 < TFTP_PACKET_DATA_SIZE) {
+
+					/* The host acknowledging the final DATA packet may terminate its side
+					   of the connection on sending the final ACK. */
+
+					packet_ack.createACK((last_packet_no - 1));
+
+					if (sendPacket(&packet_ack)) {
+
+						break;
+
+					}
+
+				} else {
+
+					//- ne paskutinis, tai siunciam ACK
+					//- Each data packet contains one block of data, and must be acknowledged by 
+					//- an acknowledgment packet before the next packet can be sent.
+					
+					packet_ack.createACK((last_packet_no - 1)); //- siunciam toki paketo numeri, kuri gavom paskutini
+					
+					sendPacket(&packet_ack);
+
+					cout << "ack sent";
+
+				}
+
+			}
+
+		}
 
 	}
 
-	return packet.getData(0);
+	file.close();
+
+	return true;
 
 }
 

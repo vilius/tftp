@@ -58,103 +58,25 @@ TFTPServer::TFTPServer(int port, char* ftproot) {
 
 	}
 
-	DEBUGMSG("Listening for connections...");
-
 	//- ijungiam nesiblokuojanti rezima
 	unsigned long non_blockig_mode = 1;
 	ioctlsocket(server_socket, FIONBIO, &non_blockig_mode);
 
+	cout << "Server started, waiting for connections" << endl;
+
 	while (true) {
 
 		acceptClients();
+		receiveFromClients();
+		sendToClients();
 
 	}
-
-/*	int acceptSocket;
-
-	while (1) {
-
-		acceptSocket = SOCKET_ERROR;
-
-		while (acceptSocket == SOCKET_ERROR) {
-
-			acceptSocket = accept(server_socket, NULL, NULL);
-
-		}
-
-		client_socket.push_back(acceptSocket);
-
-		cout << "Client connected\n";
-
-		TFTP_Packet received_packet;
-
-		if (waitForPacket(&received_packet, client_socket[client_socket.size() - 1], 1000)) {
-
-			received_packet.dumpData();
-			
-			if (received_packet.isRRQ()) {
-
-				cout << "Request for file received\n";
-
-				//The WRQ and DATA packets are acknowledged by ACK or ERROR packets, 
-				//while RRQ and ACK packets are acknowledged by DATA or ERROR packets.
-				
-				char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
-				strcpy(filename, (char*)TFTP_SERVER_ROOT);
-
-				received_packet.getString(2, (filename + strlen(filename)), received_packet.getSize());
-
-				ifstream file_rrq;
-				file_rrq.open(filename, std::ios_base::binary | std::ios_base::in);
-
-				if (!file_rrq.is_open() || !file_rrq.good()) {
-
-					disconnectOnError(client_socket[client_socket.size()-1], 1);
-
-				} else {
-
-					//- prasomas failas rastas
-					file_rrq.seekg(0, std::ios_base::beg);
-					ifstream::pos_type begin_pos = file_rrq.tellg();
-					file_rrq.seekg(0, ios_base::end);
-					int file_size = (int)(file_rrq.tellg() - begin_pos);
-
-					file_rrq.seekg(0, ios_base::beg);
-
-					cout << "Starting transfer of file '" << filename << "' [" << file_size << "]" << endl;
-
-					int total_blocks_required = (int)(file_size / TFTP_PACKET_DATA_SIZE);
-					
-					char memblock[TFTP_PACKET_DATA_SIZE];
-
-					TFTP_Packet data_packet;
-
-					for (int i = 0; i <= total_blocks_required; i++) {
-
-						file_rrq.read(memblock, TFTP_PACKET_DATA_SIZE);
-cout << memblock;
-						data_packet.clear();
-
-						data_packet.createData(i, (char*)memblock);
-
-					}
-
-				}
-
-				file_rrq.close();
-
-
-			}
-
-		}
-		
-		break;
-	
-	}
-	*/
 
 }
 
+/**
+*  Klientu prijungimas
+**/
 void TFTPServer::acceptClients() {
 
 	for (int i = 0; i < TFTP_SERVER_MAX_CLIENTS; i++) {
@@ -169,88 +91,73 @@ void TFTPServer::acceptClients() {
 		if (clients[i].connected == TFTP_SERVER_CLIENT_CONNECTED) {
 			//- turim prisijungusi klienta, darom jam veiksmus
 
-			switch (clients[i].request) {
+			if (clients[i].request == TFTP_SERVER_REQUEST_UNDEFINED) {
 
-				case TFTP_SERVER_REQUEST_UNDEFINED:
-					//- turim nauja prisijungima, darom "naujoko" veiksmus
-					//- identifikuojam komanda
-					//- sukuriam file handlerius
+				//- turim nauja prisijungima, darom "naujoko" veiksmus
+				//- identifikuojam komanda
+				//- sukuriam file handlerius
 
-					if (receivePacket(&clients[i])) {
+				if (receivePacket(&clients[i])) {
 
-						//- gavom paketa is cliento
-						//- 1 Any transfer begins with a request to read or write a file.
-						//- nustatom koks tai requestas
+					//- gavom paketa is cliento
+					//- 1 Any transfer begins with a request to read or write a file.
+					//- nustatom koks tai requestas
 
-						if (clients[i].last_packet.isRRQ()) {
+					if (clients[i].last_packet.isRRQ()) {
 
-							clients[i].request = TFTP_SERVER_REQUEST_READ;
+						clients[i].request = TFTP_SERVER_REQUEST_READ;
 
-							//- patikrinam ar egzistuoja toks failas
-							//- jei taip sukuriam handler`i ir pasiunciam pirma paketa
+						//- patikrinam ar egzistuoja toks failas
+						//- jei taip sukuriam handler`i ir pasiunciam pirma paketa
 
-							char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
-							strcpy_s(filename, TFTP_PACKET_MAX_SIZE, server_ftproot);
+						char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
+						strcpy_s(filename, TFTP_PACKET_MAX_SIZE, server_ftproot);
 
-							clients[i].last_packet.getString(2, (filename + strlen(filename)), clients[i].last_packet.getSize());
+						clients[i].last_packet.getString(2, (filename + strlen(filename)), clients[i].last_packet.getSize());
 
-							clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+						clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
 
-							if (!clients[i].file_rrq->is_open() || !clients[i].file_rrq->good()) {
+						if (!clients[i].file_rrq->is_open() || !clients[i].file_rrq->good()) {
 
-								sendError(&clients[i], 1);
-								disconnectClient(&clients[i]);
-
-							} else {
-
-								//- prasomas failas rastas
-								clients[i].file_rrq->seekg(0, std::ios_base::beg);
-								ifstream::pos_type begin_pos = clients[i].file_rrq->tellg();
-								clients[i].file_rrq->seekg(0, ios_base::end);
-								int file_size = (int)(clients[i].file_rrq->tellg() - begin_pos);
-
-								clients[i].file_rrq->seekg(0, ios_base::beg);
-
-								clientStatus(&clients[i], "File was found, starting transfer");
-								
-								sendPacketData(&clients[i]);
-
-							}
-
-						} else if (clients[i].last_packet.isRRQ()) {
-
-							clients[i].request = TFTP_SERVER_REQUEST_WRITE;
+							sendError(&clients[i], 1);
+							disconnectClient(&clients[i]);
 
 						} else {
 
-							//- neatpazintas paketas, diskonektinam
+							//- prasomas failas rastas
+							clients[i].file_rrq->seekg(0, std::ios_base::beg);
+							ifstream::pos_type begin_pos = clients[i].file_rrq->tellg();
+							clients[i].file_rrq->seekg(0, ios_base::end);
+							int file_size = (int)(clients[i].file_rrq->tellg() - begin_pos);
 
-							sendError(&clients[i], 4);
-							disconnectClient(&clients[i]);
+							clients[i].file_rrq->seekg(0, ios_base::beg);
+
+							clientStatus(&clients[i], "File was found, starting transfer");
+							
+							if (sendPacketData(&clients[i])) {
+
+								//- jei viskas ok, nesiunciam, kol negavom ACK paketo
+
+								clients[i].acknowledged = TFPT_SERVER_CLIENT_ACK_WAITING;
+
+							}
 
 						}
 
+					} else if (clients[i].last_packet.isRRQ()) {
+
+						clients[i].request = TFTP_SERVER_REQUEST_WRITE;
+
+					} else {
+
+						//- neatpazintas paketas, diskonektinam
+
+						sendError(&clients[i], 4);
+						disconnectClient(&clients[i]);
+
 					}
 
-				break;
-
-				case TFTP_SERVER_REQUEST_READ:
-
-					//DEBUGMSG("TURIM READ");
-
-				break;
-
-				case TFTP_SERVER_REQUEST_WRITE:
-
-					//DEBUGMSG("TURIM WRITE");
-
-				break;
-
-				default:
-
-					DEBUGMSG("FATAL ERROR");
-
-				break;
+				}
 
 			}
 
@@ -260,6 +167,9 @@ void TFTPServer::acceptClients() {
 
 }
 
+/**
+*  Pabandom prijungti klienta
+**/
 bool TFTPServer::acceptClient(ServerClient* client) {
 
 	int sockaddr_length = sizeof(sockaddr);
@@ -276,13 +186,75 @@ bool TFTPServer::acceptClient(ServerClient* client) {
 
 		client->ip = inet_ntoa(client->address.sin_addr);
 
-		clientStatus(client, "Connected!");
+		clientStatus(client, "Connected");
 
 		return true;
 
 	}
 
 	return false;
+
+}
+
+/**
+*  Siunciamu paketu gavimas
+**/
+void TFTPServer::receiveFromClients() {
+
+	for (int i = 0; i < TFTP_SERVER_MAX_CLIENTS; i++) {
+
+		if (clients[i].connected == TFTP_SERVER_CLIENT_CONNECTED) {
+
+			if (clients[i].request == TFTP_SERVER_REQUEST_READ) {
+
+				if (TFPT_SERVER_CLIENT_ACK_WAITING == clients[i].acknowledged) {
+
+					if (receivePacket(&clients[i])) {
+
+						if (clients[i].last_packet.isACK()) {
+
+							//- atejo ack, tikrinam ar jis ack teisinga
+
+							if (clients[i].block == clients[i].last_packet.getNumber()) {
+
+								//- ack teisingas, keiciam kliento statusa i ack_ok
+
+								clients[i].acknowledged = TFPT_SERVER_CLIENT_ACK_OK;
+
+								if (clients[i].disconnect_on_ack) {
+
+									clientStatus(&clients[i], "Transfer finished, disconnected!");
+									disconnectClient(&clients[i]);
+									
+								}
+
+							} else {
+
+								//- darome persiuntima paskutinio paketo
+								clientStatus(&clients[i], "Packet was not received, try to resend");
+								
+								sendPacket(&(clients[i].last_sent_packet), &clients[i]);
+
+							}
+
+						} else {
+
+							clientStatus(&clients[i], "Sent an unexpected packet");
+
+							sendError(&clients[i], 4, "Unexpected packet arrived, you have been disconnected");
+							disconnectClient(&clients[i]);
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
 
 }
 
@@ -301,12 +273,19 @@ bool TFTPServer::receivePacket(ServerClient* client) {
 
 		} else if (client->temp < 0) {
 
-			//DEBUGMSG("DO WE HAVE AN AERROR");
+			if (WSAGetLastError != 10035) {//- tada tikrai ne normali klaida, nonblocking rezime
+				
+				clientStatus("Error in receiving packet");
+
+			}
+
 			return false;
 
 		}
 
 		client->last_packet.setSize(client->temp);
+
+		clientStatus("Packet received");
 
 		return true;
 
@@ -376,9 +355,37 @@ bool TFTPServer::waitForPacketACK(int packet_number, int timeout_ms) {
 
 }
 
+void TFTPServer::sendToClients() {
+
+	for (int i = 0; i < TFTP_SERVER_MAX_CLIENTS; i++) {
+
+		if (clients[i].connected == TFTP_SERVER_CLIENT_CONNECTED) {
+
+			if (clients[i].request == TFTP_SERVER_REQUEST_READ) {
+
+				if (clients[i].acknowledged == TFPT_SERVER_CLIENT_ACK_OK) {
+					//- turim klienta, jam galime siusti ka nors
+
+					if (sendPacketData(&clients[i])) {
+
+						clients[i].acknowledged = TFPT_SERVER_CLIENT_ACK_WAITING;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
 bool TFTPServer::sendPacket(TFTP_Packet* packet, ServerClient* client) {
 
 	if (client->connected == TFTP_SERVER_CLIENT_NOT_CONNECTED) {
+		DEBUGMSG("Tried to send to not connected client");
 		return false;
 	}
 
@@ -390,13 +397,20 @@ bool TFTPServer::sendPacketData(ServerClient* client) {
 
 	char memblock[TFTP_PACKET_DATA_SIZE];
 
-	TFTP_Packet data_packet;
-
 	client->file_rrq->read(memblock, TFTP_PACKET_DATA_SIZE);
-	
-	data_packet.createData((++client->block), (char*)memblock);
-	data_packet.dumpData();
-	return sendPacket(&data_packet, client);
+
+	if (client->file_rrq->eof()) {
+		client->disconnect_on_ack = true;
+	}
+
+	client->block++;
+
+	cout << client->ip << ": Sending data packet no. " << client->block << endl;
+
+	client->last_sent_packet.createData(client->block, (char*)memblock, client->file_rrq->gcount());
+	client->last_sent_packet.dumpData();
+
+	return sendPacket(&(client->last_sent_packet), client);
 
 }
 
@@ -407,11 +421,14 @@ bool TFTPServer::disconnectClient(ServerClient* client) {
 	//- uznulinam viska
 
 	client->last_packet.clear();
+	client->last_sent_packet.clear();
 	client->ip = "";
 	client->connected = TFTP_SERVER_CLIENT_NOT_CONNECTED;
 	client->block = 0;
 	client->request = TFTP_SERVER_REQUEST_UNDEFINED;
 	client->temp = 0;
+	client->disconnect_on_ack = false;
+	
 
 	if (client->file_rrq != NULL) {
 

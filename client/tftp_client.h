@@ -31,7 +31,7 @@ class TFTPClient {
 		~TFTPClient();
 
 		int connectToServer();
-		unsigned char* getFile(char* filename);
+		bool getFile(char* filename);
 
 		bool waitForPacket(TFTP_Packet* packet, int timeout_ms = TFTP_CLIENT_SERVER_TIMEOUT);
 		bool waitForPacketACK(int packet_number, int timeout_ms = TFTP_CLIENT_SERVER_TIMEOUT);

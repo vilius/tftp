@@ -32,7 +32,6 @@ class TFTP_Packet {
 		~TFTP_Packet();
 		void clear();
 
-		unsigned char* getData(int offset = 0);
 		int getSize();
 		bool setSize(int size);
 
@@ -47,10 +46,13 @@ class TFTP_Packet {
 		WORD getWord(int offset = 0);
 		bool getString(int offset, char* buffer, int length);
 		WORD getNumber();
+		unsigned char* getData(int offset = 0);
+		bool copyData(int offset, char* dest, int length);
 
 		bool createRRQ(char* filename);
 		bool createWRQ(char* filename);
-		bool createData(int block, char* data);
+		bool createACK(int packet_num);
+		bool createData(int block, char* data, int data_size);
 		bool createError(int error_code, char* message);
 
 		bool sendPacket(TFTP_Packet*);

@@ -12,6 +12,7 @@ TFTP_Packet::TFTP_Packet()	{
 void TFTP_Packet::clear()	{
 
 	current_packet_size = 0;
+	
 	memset(data, current_packet_size, TFTP_PACKET_MAX_SIZE);
 
 }
@@ -19,6 +20,17 @@ void TFTP_Packet::clear()	{
 unsigned char* TFTP_Packet::getData(int offset) {
 
 	return &(data[offset]);
+
+}
+
+bool TFTP_Packet::copyData(int offset, char* dest, int length) {
+
+	if (offset > this->getSize()) return false;
+	if (length < (this->getSize() - offset)) return false; //- out of bounds
+
+	memcpy(dest, &(data[offset]), (this->getSize()-offset));
+
+	return true;
 
 }
 
@@ -81,7 +93,8 @@ bool TFTP_Packet::addString(char* str) {
 
 bool TFTP_Packet::addMemory(char* buffer, int len) {
 
-	if (current_packet_size + len >= TFTP_PACKET_DATA_SIZE)	{
+	if (current_packet_size + len >= TFTP_PACKET_MAX_SIZE)	{
+		cout << "Packet max size exceeded\n";
 		return false;
 	}
 
@@ -109,12 +122,9 @@ WORD TFTP_Packet::getWord(int offset) {
 
 WORD TFTP_Packet::getNumber() {
 
-	if (this->isData()) {
+	if (this->isData() || this->isACK()) {
 
-		WORD hi = getByte(2);
-		WORD lo = getByte(3);
-
-		return ((hi<<8)|lo);
+		return this->getWord(2);
 
 	} else {
 
@@ -166,7 +176,17 @@ bool TFTP_Packet::createWRQ(char* filename) {
 
 }
 
-bool TFTP_Packet::createData(int block, char* data) {
+bool TFTP_Packet::createACK(int packet_num) {
+
+	clear();
+	addWord(TFTP_OPCODE_ACK);
+	addWord(packet_num);
+
+	return true;
+
+}
+
+bool TFTP_Packet::createData(int block, char* data, int data_size) {
 
 /*	   2 bytes    2 bytes       n bytes
 ----------------------------------------
@@ -176,7 +196,8 @@ DATA  | 03    |   Block #  |    Data    |
 	clear();
 	addWord(TFTP_OPCODE_DATA);
 	addWord(block);
-	addMemory(data, current_packet_size);
+
+	addMemory(data, data_size);
 
 	return true;
 

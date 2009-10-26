@@ -25,7 +25,11 @@ int main(int argc, char ** argv) {
       
   }
 
-  client.getFile("readme.txt");
+  if (client.getFile("readme.txt")) {
+
+	  cout << "File transferred successfully\n";
+
+  }
 
   client.~TFTPClient();
 

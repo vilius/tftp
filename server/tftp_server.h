@@ -13,6 +13,9 @@
 #define TFTP_SERVER_CLIENT_NOT_CONNECTED 0
 #define TFTP_SERVER_CLIENT_CONNECTED 1
 
+#define TFPT_SERVER_CLIENT_ACK_WAITING 0
+#define TFPT_SERVER_CLIENT_ACK_OK 1
+
 using namespace std;
 
 class TFTPServer {
@@ -25,6 +28,9 @@ class TFTPServer {
 
 			request = TFTP_SERVER_REQUEST_UNDEFINED;
 			connected = TFTP_SERVER_CLIENT_NOT_CONNECTED;
+			acknowledged = TFPT_SERVER_CLIENT_ACK_WAITING;
+			block = 0;
+			disconnect_on_ack = false;
 
 		}
 
@@ -32,6 +38,7 @@ class TFTPServer {
 		int request;						//- prisijungusio kliento request tipas
 		int block;							//- paketu numeracija
 		int temp;							//- del winsock/recv() implementacijos
+		int acknowledged;					//- ar galima klientui siusti
 
 		char* ip;							//- ip adresas, pranesimu apie klienta rodymui
 
@@ -41,8 +48,10 @@ class TFTPServer {
 
 		ifstream* file_rrq;
 		ofstream* file_wrq;
+		bool disconnect_on_ack;
 
-		TFTP_Packet last_packet;			//- kadangi siunciame, kai gauname ACK, tai reikia tik 1 last packeta saugoti
+		TFTP_Packet last_packet,
+					last_sent_packet;		//- kadangi siunciame, kai gauname ACK, tai reikia tik 1 last packeta saugoti
 											//- The sender has to keep just one packet on hand for retransmission, since
 											//- the lock step acknowledgment guarantees that all older packets have
 											//- been received.
@@ -74,6 +83,9 @@ class TFTPServer {
 
 	void acceptClients();
 	bool acceptClient(ServerClient* client);
+
+	void receiveFromClients();
+	void sendToClients();
 
 	bool receivePacket(ServerClient* client);
 
