@@ -132,7 +132,7 @@ void TFTPServer::acceptClients() {
 
 							clients[i].file_rrq->seekg(0, ios_base::beg);
 
-							clientStatus(&clients[i], "File was found, starting transfer");
+							clientStatus(&clients[i], "File was found, starting GET transfer");
 							
 							if (sendPacketData(&clients[i])) {
 
@@ -144,14 +144,59 @@ void TFTPServer::acceptClients() {
 
 						}
 
-					} else if (clients[i].last_packet.isRRQ()) {
-
+					} else if (clients[i].last_packet.isWRQ()) {
+						
 						clients[i].request = TFTP_SERVER_REQUEST_WRITE;
+
+						//- patikrinam ar egzistuoja toks failas
+						//- jei taip sukuriam handler`i ir pasiunciam pirma paketa
+
+						char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
+						strcpy_s(filename, TFTP_PACKET_MAX_SIZE, server_ftproot);
+
+						clients[i].last_packet.getString(2, (filename + strlen(filename)), clients[i].last_packet.getSize());
+
+						clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+
+						if (clients[i].file_rrq->is_open() || clients[i].file_rrq->good()) {
+							
+							clientStatus(&clients[i], "PUT failed. File already exists on server");
+							sendError(&clients[i], 6);
+							disconnectClient(&clients[i]);
+
+						} else {
+
+							delete clients[i].file_rrq;
+
+							clients[i].file_wrq = new ofstream(filename, std::ios_base::binary);
+
+							clientStatus(&clients[i], "Starting PUT transfer");
+							
+							TFTP_Packet* packet_ack = new TFTP_Packet();
+
+							// Since the positive response to a write request is an acknowledgment packet, in this special case the
+							// block number will be zero.
+							packet_ack->createACK(0); //- pirmo wrq ack packeto bloko nr = 0
+
+							if (sendPacket(packet_ack, &clients[i])) {
+
+								clientStatus(&clients[i], "Acknowledgement sent");
+
+							} else {
+
+								clientStatus(&clients[i], "Error in sending acknowledgement");
+
+							}
+
+							delete packet_ack;
+
+						}
 
 					} else {
 
 						//- neatpazintas paketas, diskonektinam
 
+						clientStatus(&clients[i], "Client sent unexpected packet, so we will disconnect him");
 						sendError(&clients[i], 4);
 						disconnectClient(&clients[i]);
 
@@ -200,6 +245,8 @@ bool TFTPServer::acceptClient(ServerClient* client) {
 *  Siunciamu paketu gavimas
 **/
 void TFTPServer::receiveFromClients() {
+
+	char memblock[TFTP_PACKET_DATA_SIZE];
 
 	for (int i = 0; i < TFTP_SERVER_MAX_CLIENTS; i++) {
 
@@ -252,6 +299,64 @@ void TFTPServer::receiveFromClients() {
 
 			}
 
+			if (clients[i].request == TFTP_SERVER_REQUEST_WRITE) {
+
+				if (receivePacket(&clients[i])) {
+
+					if (clients[i].last_packet.isData()) {
+
+						clients[i].block++;
+
+						if (clients[i].block == clients[i].last_packet.getNumber()) {
+
+							clients[i].last_packet.copyData(4, memblock, (clients[i].last_packet.getSize() - 4));
+
+							clients[i].file_wrq->write(memblock, (clients[i].last_packet.getSize() - 4));
+
+							TFTP_Packet* packet_ack = new TFTP_Packet();
+
+							packet_ack->createACK(clients[i].block);
+
+							if (sendPacket(packet_ack, &clients[i])) {
+
+								clientStatus(&clients[i], "Acknowledgement sent");
+
+							} else {
+
+								clientStatus(&clients[i], "Error in sending acknowledgement");
+
+							}
+
+							delete packet_ack;
+
+							if (clients[i].last_packet.getSize() < TFTP_PACKET_DATA_SIZE + 4) {
+
+								clientStatus(&clients[i], "Client successfully transfered a file");
+								clientStatus(&clients[i], "Disconnected");
+								disconnectClient(&clients[i]);
+
+							}
+
+						} else {
+
+							//- darome persiuntima paskutinio paketo
+							clientStatus(&clients[i], "Packet order mismatched");
+							
+						}
+
+					} else {
+
+						clientStatus(&clients[i], "Sent an unexpected packet");
+
+						sendError(&clients[i], 4, "Unexpected packet arrived, you have been disconnected");
+						disconnectClient(&clients[i]);
+
+					}
+
+				}
+
+			}
+
 		}
 
 	}
@@ -266,16 +371,17 @@ bool TFTPServer::receivePacket(ServerClient* client) {
 
 		if (client->temp == 0) {
 			
-			//- transfer ended?
-			DEBUGMSG("SHALL WE DISCONNET?");
-
+			//- transfer ended
+			clientStatus(client, "Client closed connection");
+			disconnectClient(client);
+			
 			return false;
 
 		} else if (client->temp < 0) {
 
-			if (WSAGetLastError != 10035) {//- tada tikrai ne normali klaida, nonblocking rezime
+			if (WSAGetLastError() != 10035) {//- tada tikrai ne normali klaida, nonblocking rezime
 				
-				clientStatus("Error in receiving packet");
+				clientStatus(client, "Error in receiving packet");
 
 			}
 
@@ -285,7 +391,7 @@ bool TFTPServer::receivePacket(ServerClient* client) {
 
 		client->last_packet.setSize(client->temp);
 
-		clientStatus("Packet received");
+		clientStatus(client, "Packet received");
 
 		return true;
 
@@ -429,7 +535,7 @@ bool TFTPServer::disconnectClient(ServerClient* client) {
 	client->temp = 0;
 	client->disconnect_on_ack = false;
 	
-
+/*
 	if (client->file_rrq != NULL) {
 
 		if (client->file_rrq->is_open()) {
@@ -439,6 +545,16 @@ bool TFTPServer::disconnectClient(ServerClient* client) {
 		delete client->file_rrq;
 
 	}
+
+	if (client->file_wrq != NULL) {
+
+		if (client->file_wrq->is_open()) {
+			client->file_wrq->close();
+		}
+
+		delete client->file_wrq;
+
+	}*/
 
 	closesocket(client->client_socket);
 
@@ -461,7 +577,6 @@ void TFTPServer::clientStatus(ServerClient* client, char* message) {
 	cout << client->ip << ": " << message << endl;
 
 }
-
 
 TFTPServer::~TFTPServer() {
 

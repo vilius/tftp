@@ -36,5 +36,6 @@
 #define TFTP_ERROR_7 "No such user"
 
 #define TFTP_SERVER_ROOT "F:/Documents and Settings/Vilius/Desktop/tftp/server/ftproot/"
+#define TFTP_DEFAULT_PORT 5555
 
 #endif

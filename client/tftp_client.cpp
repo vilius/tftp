@@ -5,11 +5,12 @@
 
 using namespace std;
 
-TFTPClient::TFTPClient(char* ip) {
+TFTPClient::TFTPClient(char* ip, int port) {
 
 	TFTP_Packet packet;
 
 	server_ip = ip;
+	server_port = port;
 
 	//- standartines reiksmes
 
@@ -39,6 +40,8 @@ TFTPClient::TFTPClient(char* ip) {
 
 int TFTPClient::connectToServer() {
 
+	cout << "Connecting to " << server_ip << " on port " << server_port << endl;
+
     socket_descriptor = socket(PF_INET, SOCK_STREAM, 0);
 
     if (socket_descriptor == -1) {
@@ -50,7 +53,7 @@ int TFTPClient::connectToServer() {
     DEBUGMSG("Socket created");
 
     client_address.sin_family = AF_INET;
-	client_address.sin_port = htons(5555);	//- taip pat turi buti ir serveryje!
+	client_address.sin_port = htons(server_port);	//- taip pat turi buti ir serveryje!
     client_address.sin_addr.s_addr = inet_addr(this->server_ip);
 
     #ifdef WIN32
@@ -62,7 +65,7 @@ int TFTPClient::connectToServer() {
 
     if (connection != 0) {
 
-        cout << "Unable to connect to an address\n";
+        //cout << "Unable to connect to an address\n";
         return -1;
         
     }
@@ -85,10 +88,10 @@ int TFTPClient::sendPacket(TFTP_Packet* packet) {
 
 }
 
-bool TFTPClient::getFile(char* filename) {
+bool TFTPClient::getFile(char* filename,char* destination) {
 
 	TFTP_Packet packet_rrq, packet_ack;
-	ofstream file("test.txt", ifstream::binary);
+	ofstream file(destination, ifstream::binary);
 
 	char buffer[TFTP_PACKET_DATA_SIZE];
 
@@ -97,13 +100,40 @@ bool TFTPClient::getFile(char* filename) {
 	sendPacket(&packet_rrq);
 
 	int last_packet_no = 1;
+	int wait_status;
+	int timeout_count = 0;
 
 	while (true) {
 
-		if (!waitForPacketData(last_packet_no, TFTP_CLIENT_SERVER_TIMEOUT)) {
+		wait_status = waitForPacketData(last_packet_no, TFTP_CLIENT_SERVER_TIMEOUT);
+		
+		if (wait_status == TFTP_CLIENT_ERROR_PACKET_UNEXPECTED) {
 			
 			received_packet.dumpData();
-			break;
+			file.close();
+
+			return false;
+
+		} else if (wait_status == TFTP_CLIENT_ERROR_TIMEOUT) {
+
+			//- nebesulaukem paketo
+
+			timeout_count++;
+
+			if (timeout_count < 2) { //- kadangi tai pirmas timeout`as, tai bandom pasiusti paskutini ACK
+
+				sendPacket(&packet_ack);
+				continue;
+
+			} else {
+
+				cout << "Connection timeout" << endl;
+
+				file.close();
+
+				return false;
+
+			}
 
 		}
 
@@ -114,12 +144,21 @@ bool TFTPClient::getFile(char* filename) {
 			   termination, the source port of a received packet being incorrect.
 			   In this case, an error packet is sent to the originating host. */
 
+			/* Taip negali nutikti, nes pas mus naudojamas ACK Lock`as */
+
+			cout << "This should not happen!" << endl; //- aisku kada kadanors tai vis tiek atsitiks :)
+
 		} else {
 
 			//- paketas tvarkoj
 			received_packet.dumpData();
 
 			last_packet_no++;
+
+			//- jei tai susitvarkes timeoutinis paketas, tai pasidziaukim ir leiskim tai pakartot
+			if (timeout_count == 1) {
+				timeout_count = 0;
+			}
 
 			if (received_packet.copyData(4, buffer, TFTP_PACKET_DATA_SIZE)) {
 
@@ -152,7 +191,7 @@ bool TFTPClient::getFile(char* filename) {
 					
 					sendPacket(&packet_ack);
 
-					cout << "ack sent";
+					DEBUGMSG("Acknoledgement sent");
 
 				}
 
@@ -168,7 +207,7 @@ bool TFTPClient::getFile(char* filename) {
 
 }
 
-bool TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
+int TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
 
 	packet->clear();
 
@@ -187,13 +226,13 @@ bool TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
 
 	if (select_ready == -1) {
 
-		DEBUGMSG("Error in select()");
-		return false;
+		cout << "Error in select(), no: " << WSAGetLastError() << endl;
+		return TFTP_CLIENT_ERROR_SELECT;
 
 	} else if (select_ready == 0) {
 
 		DEBUGMSG("Timeout");
-		return false;
+		return TFTP_CLIENT_ERROR_TIMEOUT;
 
 	}
 
@@ -204,20 +243,20 @@ bool TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
 	receive_status = recv(socket_descriptor, (char*)packet->getData(), TFTP_PACKET_MAX_SIZE, 0);
 
 	if (receive_status == 0) {
-		cout << "Connection was closed by client\n";
-		return false;
+		cout << "Connection was closed by server\n";
+		return TFTP_CLIENT_ERROR_CONNECTION_CLOSED;
     }
 
 	if (receive_status == SOCKET_ERROR)	{
 		DEBUGMSG("recv() error in waitForPackage()");
-		return false;
+		return TFTP_CLIENT_ERROR_RECEIVE;
 	}
 
 	//- receive_status - gautu duomenu dydis
 	
 	packet->setSize(receive_status);
 
-	return true;
+	return TFTP_CLIENT_ERROR_NO_ERROR;
 
 }
 
@@ -231,6 +270,14 @@ bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
 
 			errorReceived(&received_packet);
 
+			return false;
+
+		}
+
+		if (received_packet.isACK()) {
+
+			return true;
+
 		}
 
 		if (received_packet.isData()) {
@@ -245,27 +292,85 @@ bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
 
 }
 
-bool TFTPClient::waitForPacketData(int packet_number, int timeout_ms) {
+int TFTPClient::waitForPacketData(int packet_number, int timeout_ms) {
 
-	if (waitForPacket(&received_packet, timeout_ms)) {
+	int wait_status = waitForPacket(&received_packet, timeout_ms);
+
+	if (wait_status == TFTP_CLIENT_ERROR_NO_ERROR) {
 
 		if (received_packet.isError()) {
 
 			errorReceived(&received_packet);
 
-			return false;
+			return TFTP_CLIENT_ERROR_PACKET_UNEXPECTED;
 
 		}
 
 		if (received_packet.isData()) {
 			
-			return true;
+			return TFTP_CLIENT_ERROR_NO_ERROR;
 
 		}
 
 	}
 
-	return false; //- timeout occured
+	return wait_status;
+
+}
+
+bool TFTPClient::sendFile(char* filename, char* destination) {
+	
+	TFTP_Packet packet_wrq, packet_data;
+	ifstream file(filename, ifstream::binary);
+	char memblock[TFTP_PACKET_DATA_SIZE];
+
+	if (!file.is_open() || !file.good()) {
+
+		cout << "Unable to open file " << filename << endl;
+
+		return false;
+
+	}
+
+	char buffer[TFTP_PACKET_DATA_SIZE];
+
+	packet_wrq.createWRQ(destination);
+	packet_wrq.dumpData();
+
+	sendPacket(&packet_wrq);
+
+	int last_packet_no = 0;
+	int last_error = 0;
+
+	while (true) {
+
+		if (waitForPacketACK(++last_packet_no, TFTP_CLIENT_SERVER_TIMEOUT)) {
+
+			file.read(memblock, TFTP_PACKET_DATA_SIZE);
+
+			packet_data.createData(last_packet_no, (char*)memblock, file.gcount());
+
+			sendPacket(&packet_data);
+
+			if (file.eof()) {
+
+				break;
+
+			}
+
+		} else {
+
+			cout << "Server has timed out" << endl;
+			file.close();
+			return false;
+
+		}
+		
+	}
+
+	file.close();
+
+	return true;
 
 }
 
