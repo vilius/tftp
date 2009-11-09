@@ -58,9 +58,16 @@ TFTPServer::TFTPServer(int port, char* ftproot) {
 
 	}
 
-	//- ijungiam nesiblokuojanti rezima
+	//- ijungiam nesiblokuojanti rezima WIN32
+#ifdef WIN32
 	unsigned long non_blockig_mode = 1;
 	ioctlsocket(server_socket, FIONBIO, &non_blockig_mode);
+#else
+	int test_fail = fcntl(server_socket, F_SETFL, O_NONBLOCK);
+	if (test_fail == -1) {
+		DEBUGMSG("fcntl failed");
+	}
+#endif
 
 	cout << "Server started, waiting for connections" << endl;
 
@@ -111,11 +118,15 @@ void TFTPServer::acceptClients() {
 						//- jei taip sukuriam handler`i ir pasiunciam pirma paketa
 
 						char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
-						strcpy_s(filename, TFTP_PACKET_MAX_SIZE, server_ftproot);
+						strcpy(filename, server_ftproot);
 
 						clients[i].last_packet.getString(2, (filename + strlen(filename)), clients[i].last_packet.getSize());
 
-						clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+						#ifdef WIN32
+							clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+						#else
+							clients[i].file_rrq = new ifstream(filename, std::ios::binary | std::ios::in | std::ios::ate);
+						#endif
 
 						if (!clients[i].file_rrq->is_open() || !clients[i].file_rrq->good()) {
 
@@ -125,12 +136,31 @@ void TFTPServer::acceptClients() {
 						} else {
 
 							//- prasomas failas rastas
-							clients[i].file_rrq->seekg(0, std::ios_base::beg);
-							ifstream::pos_type begin_pos = clients[i].file_rrq->tellg();
-							clients[i].file_rrq->seekg(0, ios_base::end);
-							int file_size = (int)(clients[i].file_rrq->tellg() - begin_pos);
+							#ifdef WIN32
+								clients[i].file_rrq->seekg(0, std::ios_base::beg);
+								ifstream::pos_type begin_pos = clients[i].file_rrq->tellg();
+							#else
+								clients[i].file_rrq->seekg(0, std::ios::beg);
+								long begin_pos = clients[i].file_rrq->tellg();
+							#endif
 
-							clients[i].file_rrq->seekg(0, ios_base::beg);
+							
+
+							#ifdef WIN32
+								clients[i].file_rrq->seekg(0, std::ios_base::end);
+              	int file_size = (int)(clients[i].file_rrq->tellg() - begin_pos);
+							  cout << "File size: " << file_size << endl;
+
+
+							#else
+								clients[i].file_rrq->seekg(0, std::ios::end);
+							#endif
+
+							#ifdef WIN32
+								clients[i].file_rrq->seekg(0, ios_base::beg);
+							#else
+								clients[i].file_rrq->seekg(0, std::ios::beg);
+							#endif
 
 							clientStatus(&clients[i], "File was found, starting GET transfer");
 							
@@ -152,11 +182,15 @@ void TFTPServer::acceptClients() {
 						//- jei taip sukuriam handler`i ir pasiunciam pirma paketa
 
 						char* filename = (char*)calloc(TFTP_PACKET_MAX_SIZE, sizeof(char));
-						strcpy_s(filename, TFTP_PACKET_MAX_SIZE, server_ftproot);
+						strcpy(filename, server_ftproot);
 
 						clients[i].last_packet.getString(2, (filename + strlen(filename)), clients[i].last_packet.getSize());
 
-						clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+						#ifdef WIN32
+							clients[i].file_rrq = new ifstream(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::ate);
+						#else
+							clients[i].file_rrq = new ifstream(filename, std::ios::binary | std::ios::in | std::ios::ate);
+						#endif
 
 						if (clients[i].file_rrq->is_open() || clients[i].file_rrq->good()) {
 							
@@ -168,7 +202,11 @@ void TFTPServer::acceptClients() {
 
 							delete clients[i].file_rrq;
 
+#ifdef WIN32
 							clients[i].file_wrq = new ofstream(filename, std::ios_base::binary);
+#else
+							clients[i].file_wrq = new ofstream(filename, std::ios::binary);
+#endif
 
 							clientStatus(&clients[i], "Starting PUT transfer");
 							
@@ -217,7 +255,11 @@ void TFTPServer::acceptClients() {
 **/
 bool TFTPServer::acceptClient(ServerClient* client) {
 
+#ifdef WIN32
 	int sockaddr_length = sizeof(sockaddr);
+#else
+	socklen_t sockaddr_length = sizeof(sockaddr_length);
+#endif
 
 	client->client_socket = accept(server_socket,(sockaddr *)&client->address, &sockaddr_length);
 
@@ -309,8 +351,16 @@ void TFTPServer::receiveFromClients() {
 
 						if (clients[i].block == clients[i].last_packet.getNumber()) {
 
+              //	clients[i].last_packet.dumpData();
+
 							clients[i].last_packet.copyData(4, memblock, (clients[i].last_packet.getSize() - 4));
 
+						/*cout << "---------------------------------" << endl;
+
+							cout << memblock << endl;
+
+							cout << "---------------------------------" << endl;*/
+							
 							clients[i].file_wrq->write(memblock, (clients[i].last_packet.getSize() - 4));
 
 							TFTP_Packet* packet_ack = new TFTP_Packet();
@@ -319,7 +369,8 @@ void TFTPServer::receiveFromClients() {
 
 							if (sendPacket(packet_ack, &clients[i])) {
 
-								clientStatus(&clients[i], "Acknowledgement sent");
+                clientStatus(&clients[i], "Acknowledgement sent");
+                cout << "Acknowledged block no " << clients[i].block << endl;
 
 							} else {
 
@@ -331,6 +382,7 @@ void TFTPServer::receiveFromClients() {
 
 							if (clients[i].last_packet.getSize() < TFTP_PACKET_DATA_SIZE + 4) {
 
+                clients[i].file_wrq->close();
 								clientStatus(&clients[i], "Client successfully transfered a file");
 								clientStatus(&clients[i], "Disconnected");
 								disconnectClient(&clients[i]);
@@ -347,6 +399,11 @@ void TFTPServer::receiveFromClients() {
 					} else {
 
 						clientStatus(&clients[i], "Sent an unexpected packet");
+            cout << "Unexpected packet type was: ";
+
+            if (clients[i].last_packet.isACK()) cout << "ACK" << endl;
+            if (clients[i].last_packet.isWRQ()) cout << "WRQ" << endl;
+            if (clients[i].last_packet.isRRQ()) cout << "RRQ" << endl;
 
 						sendError(&clients[i], 4, "Unexpected packet arrived, you have been disconnected");
 						disconnectClient(&clients[i]);
@@ -379,11 +436,13 @@ bool TFTPServer::receivePacket(ServerClient* client) {
 
 		} else if (client->temp < 0) {
 
+#ifdef WIN32
 			if (WSAGetLastError() != 10035) {//- tada tikrai ne normali klaida, nonblocking rezime
 				
 				clientStatus(client, "Error in receiving packet");
 
 			}
+#endif
 
 			return false;
 
@@ -402,11 +461,11 @@ bool TFTPServer::receivePacket(ServerClient* client) {
 }
 
 /* bloguojantis variantas */
-bool TFTPServer::waitForPacket(TFTP_Packet* packet, int current_client_socket, int timeout_ms) {
+/*bool TFTPServer::waitForPacket(TFTP_Packet* packet, int current_client_socket, int timeout_ms) {
 
 	packet->clear();
 
-	FD_SET fd_reader; // soketu masyvo struktura
+	fd_set fd_reader; // soketu masyvo struktura
 	timeval connection_timer; // laiko struktura perduodama select()
 
 	connection_timer.tv_sec = timeout_ms / 1000; // s
@@ -453,7 +512,7 @@ bool TFTPServer::waitForPacket(TFTP_Packet* packet, int current_client_socket, i
 
 	return true;
 
-}
+}*/
 
 bool TFTPServer::waitForPacketACK(int packet_number, int timeout_ms) {
 
@@ -495,7 +554,7 @@ bool TFTPServer::sendPacket(TFTP_Packet* packet, ServerClient* client) {
 		return false;
 	}
 
-	return send(client->client_socket, (char*)packet->getData(), packet->getSize(), 0);
+	return (send(client->client_socket, (char*)packet->getData(), packet->getSize(), 0) > 0);
 
 }
 
@@ -555,8 +614,11 @@ bool TFTPServer::disconnectClient(ServerClient* client) {
 		delete client->file_wrq;
 
 	}*/
-
+#ifdef WIN32
 	closesocket(client->client_socket);
+#else
+	close(client->client_socket);
+#endif
 
 	return true;
 
@@ -568,13 +630,15 @@ bool TFTPServer::sendError(ServerClient* client, int error_no, char* custom_mess
 
 	error_packet.createError(error_no, custom_message);
 
-	return (sendPacket(&error_packet, client) > 0);
+	return sendPacket(&error_packet, client);
 
 }
 
 void TFTPServer::clientStatus(ServerClient* client, char* message) {
 
-	cout << client->ip << ": " << message << endl;
+
+
+	cout << client->ip << ": " << message << "\n";
 
 }
 

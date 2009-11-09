@@ -1,5 +1,5 @@
-all: server
+all: 
  
-server: main.cpp
-	g++ -o server main.cpp
-	./server
+	g++ main.cpp tftp_server.cpp tftp_packet.cpp lib/anyoption.cpp -Wno-write-strings -o srv
+	
+

@@ -16,6 +16,10 @@
 #define TFPT_SERVER_CLIENT_ACK_WAITING 0
 #define TFPT_SERVER_CLIENT_ACK_OK 1
 
+#ifndef WIN32
+#define SOCKET int
+#endif
+
 using namespace std;
 
 class TFTPServer {
@@ -42,7 +46,8 @@ class TFTPServer {
 
 		char* ip;							//- ip adresas, pranesimu apie klienta rodymui
 
-		FD_SET set;							//- fd sarasas, kuriuose yra duomenu
+		fd_set set;
+
 		SOCKET client_socket;				
 		sockaddr_in address;
 
@@ -65,10 +70,10 @@ class TFTPServer {
   private:
 
     int server_port;
-	char* server_ftproot;
+    char* server_ftproot;
 
     SOCKET server_socket;
-    sockaddr_in server_address;
+    struct sockaddr_in server_address;
     int listener;
 
   protected:

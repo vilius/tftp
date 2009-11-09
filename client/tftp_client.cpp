@@ -40,7 +40,7 @@ TFTPClient::TFTPClient(char* ip, int port) {
 
 int TFTPClient::connectToServer() {
 
-	cout << "Connecting to " << server_ip << " on port " << server_port << endl;
+	  cout << "Connecting to " << server_ip << " on port " << server_port << endl;
 
     socket_descriptor = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -50,10 +50,8 @@ int TFTPClient::connectToServer() {
 
     }
 
-    DEBUGMSG("Socket created");
-
     client_address.sin_family = AF_INET;
-	client_address.sin_port = htons(server_port);	//- taip pat turi buti ir serveryje!
+	  client_address.sin_port = htons(server_port);	//- taip pat turi buti ir serveryje!
     client_address.sin_addr.s_addr = inet_addr(this->server_ip);
 
     #ifdef WIN32
@@ -65,7 +63,7 @@ int TFTPClient::connectToServer() {
 
     if (connection != 0) {
 
-        //cout << "Unable to connect to an address\n";
+        cout << "Unable to connect to an address\n";
         return -1;
         
     }
@@ -88,7 +86,7 @@ int TFTPClient::sendPacket(TFTP_Packet* packet) {
 
 }
 
-bool TFTPClient::getFile(char* filename,char* destination) {
+bool TFTPClient::getFile(char* filename, char* destination) {
 
 	TFTP_Packet packet_rrq, packet_ack;
 	ofstream file(destination, ifstream::binary);
@@ -211,23 +209,27 @@ int TFTPClient::waitForPacket(TFTP_Packet* packet, int timeout_ms) {
 
 	packet->clear();
 
-	FD_SET fd_reader;		  // soketu masyvo struktura
+	fd_set fd_reader;		  // soketu masyvo struktura
 	timeval connection_timer; // laiko struktura perduodama select()
 
 	connection_timer.tv_sec = timeout_ms / 1000; // s
 	connection_timer.tv_usec = 0; // neveikia o.0 timeout_ms; // ms 
 
 	FD_ZERO(&fd_reader);
-
 	// laukiam, kol bus ka nuskaityti
 	FD_SET(socket_descriptor, &fd_reader);
 
-	int select_ready = select(0, &fd_reader, NULL, &fd_reader, &connection_timer);
+	int select_ready = select(socket_descriptor + 1, &fd_reader, NULL, NULL, &connection_timer);
 
 	if (select_ready == -1) {
 
+#ifdef WIN32
 		cout << "Error in select(), no: " << WSAGetLastError() << endl;
-		return TFTP_CLIENT_ERROR_SELECT;
+#else
+		cout << "Error in select(): " << endl;
+#endif
+		
+    return TFTP_CLIENT_ERROR_SELECT;
 
 	} else if (select_ready == 0) {
 
@@ -264,9 +266,11 @@ bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
 
 	TFTP_Packet received_packet;
 
-	if (waitForPacket(&received_packet, 1000)) {
+	if (waitForPacket(&received_packet, timeout_ms)) {
 
 		if (received_packet.isError()) {
+
+      cout << "ACK expected, but got Error" << endl;
 
 			errorReceived(&received_packet);
 
@@ -276,17 +280,27 @@ bool TFTPClient::waitForPacketACK(int packet_number, int timeout_ms) {
 
 		if (received_packet.isACK()) {
 
+      cout << "ACK for packet " << received_packet.getNumber() << "(expected: " << packet_number << ")" << endl;
+
 			return true;
 
 		}
 
 		if (received_packet.isData()) {
 
-			return true;
+      cout << "DATAK for packet " << received_packet.getNumber() << "(expected: " << packet_number << ")" << endl;
+			
+      return true;
 
 		}
 
-	}
+    cout << "Unhandled packet" << endl;
+
+	} else {
+
+    DEBUGMSG("We have an error in waitForPacket()");
+
+  }
 
 	return true;
 
@@ -332,19 +346,17 @@ bool TFTPClient::sendFile(char* filename, char* destination) {
 
 	}
 
-	char buffer[TFTP_PACKET_DATA_SIZE];
-
 	packet_wrq.createWRQ(destination);
 	packet_wrq.dumpData();
 
 	sendPacket(&packet_wrq);
 
 	int last_packet_no = 0;
-	int last_error = 0;
+//	int last_error = 0;
 
 	while (true) {
 
-		if (waitForPacketACK(++last_packet_no, TFTP_CLIENT_SERVER_TIMEOUT)) {
+		if (waitForPacketACK(last_packet_no++, TFTP_CLIENT_SERVER_TIMEOUT)) {
 
 			file.read(memblock, TFTP_PACKET_DATA_SIZE);
 
@@ -397,7 +409,7 @@ void TFTPClient::errorReceived(TFTP_Packet* packet) {
 
 	cout << endl;
 
-	TFTPClient::~TFTPClient();
+	this->~TFTPClient();
 
 }
 

@@ -91,7 +91,7 @@ int main(int argc, char ** argv) {
 
 	} else {
 
-		strcpy_s(destination, strlen(source), source);
+		strcpy(destination, source);
 
 	}
 

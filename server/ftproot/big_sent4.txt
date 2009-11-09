@@ -1,0 +1,159 @@
+We should be able to send this file to receiver!
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
+
+<head profile="http://gmpg.org/xfn/11">
+<script type="text/javascript">var _sf_startpt=(new Date()).getTime()</script>
+<title>Search for text in vi or vim | UNIX | Tech-Recipes</title>
+
+<!-- no cache headers --> 
+<meta http-equiv="Pragma" content="no-cache" /> 
+<meta http-equiv="Expires" content="-1" /> 
+<meta http-equiv="Cache-Control" content="no-cache" /> 
+<!-- end no cache headers -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Language" content="en-us" />
+<meta http-equiv="imagetoolbar" content="no" />
+
+<meta name="robots" content="all" />
+<meta name="rating" content="general" />
+<meta name="revisit-after" content="1 Day" />
+<meta name="doc-class" content="Living Document" />
+<meta name="generator" content="WordPress 2.8.5" /> <!-- leave this for stats -->
+
+<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://www.tech-recipes.com/feed/" />
+<link rel="alternate" type="text/xml" title="RSS .92" href="http://www.tech-recipes.com/feed/rss/" />
+<link rel="alternate" type="application/atom+xml" title="Atom 1.0" href="http://www.tech-recipes.com/feed/atom/" />
+
+<link rel="pingback" href="http://www.tech-recipes.com/xmlrpc.php" />
+<link rel="shortcut icon" href="http://m.tech-recipes.com/t/favicon.ico" type="image/x-icon" />
+
+<link rel="stylesheet" media="screen" type="text/css" href="http://www.tech-recipes.com/wp-content/themes/tech-recipes/style.css" />
+
+<!--[if IE 7]>
+<link rel="stylesheet" media="screen" type="text/css" href="http://www.tech-recipes.com/wp-content/themes/tech-recipes/style-ie7.css">
+<![endif]-->
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" media="screen" type="text/css" href="http://www.tech-recipes.com/wp-content/themes/tech-recipes/style-ie6.css">
+<![endif]-->
+
+
+<link rel="alternate" type="application/rss+xml" title="Tech-Recipes &raquo; Search for text in vi or vim Comments Feed" href="http://www.tech-recipes.com/rx/220/search-for-text-in-vi-or-vim/feed/" />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.tech-recipes.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.tech-recipes.com/wp-includes/wlwmanifest.xml" /> 
+<link rel='index' title='Tech-Recipes' href='http://www.tech-recipes.com' />
+<link rel='start' title='Change the default route in Solaris' href='http://www.tech-recipes.com/rx/1/change_the_default_route_in_solaris/' />
+<link rel='prev' title='Copy and paste text with vi or vim' href='http://www.tech-recipes.com/rx/219/copy-and-paste-text-with-vi-or-vim/' />
+<link rel='next' title='MySQL &#8211; Daily database dumps, all nicely sorted.' href='http://www.tech-recipes.com/rx/221/mysql-daily-database-dumps-all-nicely-sorted/' />
+<meta name="generator" content="WordPress 2.8.5" />
+<link rel="stylesheet" href="http://disqus.com/stylesheets/tech-recipes/disqus.css?v=2.0" type="text/css" media="screen" /><meta name="keywords" content="howto,tech-recipes,tutorial,tweak,unix" />
+<meta name="description" content="vi and vim have powerful searching capabilities because they bring to bear the richness of regular expressions. To search for the next occurence of" />
+<script charset="utf-8" type="text/javascript" src="http://w.sharethis.com/button/sharethis.js#publisher=365421c8-a449-494e-a255-e2f879d16d71&amp;type=website&amp;style=rotate&amp;wp=2.8.5"></script>
+
+</head>
+
+<body>
+
+<!-- Hi there. Welcome to the source. -->
+
+<!-- :Wrapper -->
+<div id="wrapper">
+
+<!-- :Header -->
+	<div id="header_wrapper">
+		<div id="header">
+			<a href="http://www.tech-recipes.com" title="Tech-Recipes" id="header-logo"><img src="http://m.tech-recipes.com/t/Rex60L.gif" alt="Tech-Recipes" /><img src="http://m.tech-recipes.com/t/tech-recipes-logo.gif" alt="Tech-Recipes" /></a>
+			<div class="subscribe-buttons">
+
+				<p><img src="http://m.tech-recipes.com/t/daily-updates.gif" alt="Daily Updates" class="daily-updates" /><br />
+                <a href="http://www.tech-recipes.com/feed/"><img src="http://m.tech-recipes.com/t/update-rss.gif" alt="RSS" /></a><a href="http://www.feedburner.com/fb/a/emailverifySubmit?feedId=485977&amp;loc=en_US"><img src="http://m.tech-recipes.com/t/update-email.gif" alt="Email" /></a><a href="http://twitter.com/techrecipes"><img src="http://m.tech-recipes.com/t/update-twitter.gif" alt="Twitter" /></a></p>
+			</div>
+            
+            <div id="googlesearch">
+            
+              <form action="http://www.tech-recipes.com/search" id="cse-search-box">
+                <div>
+                  <input type="hidden" name="cx" value="012922835183549295353:oxbifq4tx3a" />
+                  <input type="hidden" name="cof" value="FORID:11" />
+                  <input type="hidden" name="ie" value="UTF-8" />
+
+                  <input type="text" name="q" size="31" />
+                  <input type="submit" name="sa" value="Search" />
+                </div>
+              
+              <script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
+            </form>
+            </div>
+            
+		</div>
+		<!-- :Header Navigation -->
+
+		<div id="header-navigation">
+			<ul>
+					<li><a href="http://www.tech-recipes.com/" title="Homepage">Home</a></li>
+					<li><a href="http://www.tech-recipes.com/about/" title="About Tech Recipes">About</a></li>
+					<li><a href="http://www.tech-recipes.com/top-ten/" title="Top Tens">Top Tens</a></li>
+					<li><a href="http://blogs.tech-recipes.com/" title="Blogs">Blogs</a></li>
+					<li class="last"><a href="https://www.tech-recipes.com/add-recipe/" title="Add Recipe"><img src="http://m.tech-recipes.com/t/header-link_add.gif" alt="Add" /> <span class="green">Add Recipe</span></a></li>
+
+			</ul>
+
+		</div>
+		<!-- /Header Navigation -->
+	</div>
+<!-- /Header -->
+
+<!-- :Content Wrapper -->
+	<div id="content_wrapper">
+
+		<!-- :Content -->
+
+		<div id="content">
+
+
+<div id="leaderboard">
+  <!-- begin ad tag (techrecipes/unix;728x90) -->
+<script type="text/javascript">
+//<![CDATA[
+
+ord = window.ord || Math.floor(Math.random()*1E16);
+
+document.write('<script type="text/javascript" src="http://ad2.netshelter.net/adj/ns.techrecipes/unix;kw=;tile=1;dcopt=ist;sz=728x90;ord=' + ord + '?"><\/script>');
+
+//]]>
+
+</script>
+<noscript><a href="http://ad2.netshelter.net/jump/ns.techrecipes/unix;kw=;tile=1;sz=728x90;ord=123456789?" target="_blank" ><img src="http://ad2.netshelter.net/ad/ns.techrecipes/unix;kw=;tile=1;sz=728x90;ord=123456789?" border="0" alt="" /></a></noscript>
+<!-- end ad tag --></div>
+
+	<!-- :Left Side -->
+	<div id="content_left">
+
+				<!-- green is good --><img src="http://ad.doubleclick.net/ad/ns.techrecipes/LeanAndGreen;sz=1x1;ord=123456789?" border="0" alt="" />
+<ul id="navigation-left">
+ <li><a href="http://www.tech-recipes.com" title="" class="win"><h3>CATEGORIES</h3></a></li>
+ 
+ 
+             
+  
+  
+    
+  
+                  <li class="current"><a href="http://www.tech-recipes.com/category/unix/">UNIX</a></li>
+      
+                      <li class="child"><a href="http://www.tech-recipes.com/category/unix/freebsd/">FreeBSD</a></li>
+                            <li class="child"><a href="http://www.tech-recipes.com/category/unix/linux/">Linux</a></li>
+                                                <li class="child"><a href="http://www.tech-recipes.com/category/unix/solaris/">Solaris</a></li>
+
+                                                          <li class="child"><a href="http://www.tech-recipes.com/category/unix/unix-shell/">UNIX shell</a></li>
+                                                <li class="child"><a href="http://www.tech-recipes.com/category/unix/unix-software/">UNIX software</a></li>
+                                                                                    
+
+
+      <li><a href="http://ad.doubleclick.net/clk;218590127;41559642;k?http://ad.doubleclick.net/clk;218534360;41559832;i">Green computing</a></li>
+
+
+
+	<li class="cat-item cat

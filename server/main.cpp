@@ -15,7 +15,6 @@ using namespace std;
 int main(int argc, char **  argv) {
 
 	int port = TFTP_DEFAULT_PORT;
-	char* file_dir;
 
 	AnyOption *opt = new AnyOption();
 

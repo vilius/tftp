@@ -3,13 +3,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 #include <iostream>
 #include <fstream>
 #include <exception>
 #include <vector>
 
-#include "../client/tftp_packet.h"
+#include "tftp_packet.h"
 
 #define DEBUG
 
@@ -21,8 +21,13 @@
 
   #include <sys/types.h>
   #include <sys/socket.h>
+  #include <sys/time.h>
   #include <arpa/inet.h>
   #include <netinet/in.h>
+  #include <unistd.h>
+  #include <fcntl.h>
+
+  #define SOCKET_ERROR -1
 
 #endif
 

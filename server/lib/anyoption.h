@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 
 #define COMMON_OPT 	1
 #define COMMAND_OPT 	2
