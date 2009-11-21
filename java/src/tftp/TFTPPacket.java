@@ -14,7 +14,7 @@ public class TFTPPacket {
 	static final String TFTP_DEFAULT_TRANSFER_MODE = "octet";
 	
 	protected int current_packet_size;
-	protected byte[] data; 
+	public byte[] data; 
 	
 	protected int packet_num;
 		
@@ -28,6 +28,8 @@ public class TFTPPacket {
 	}
 	
 	public void clear() {
+		
+		current_packet_size = 0;
 		
 		for (int i = 0; i < TFTP_PACKET_MAX_SIZE; i++) data[i] = 0;
 		
@@ -75,9 +77,11 @@ public class TFTPPacket {
 	
 	public boolean addWord(char w) {
 
-		//TODO: implement
+		if (!addByte((byte)((w&0xFF00)>>8))) {
+			return false;
+		}
 		
-		return false;
+		return addByte((byte)(w&0x00FF));
 		
 	}
 	
@@ -115,16 +119,27 @@ public class TFTPPacket {
 	
 	public char getWord(int offset) {
 		
-		//TODO: implement
-		
-		return ' ';
+		return (char)(data[offset] << 8 | data[offset + 1]);
 		
 	}
 	
-	public String getString() {
+	public String getString(int offset, int length) throws Exception {
 	
 		//TODO: implement
-		return new String();
+		
+		if (offset > current_packet_size) throw new Exception("getString() out of packet bounds");
+		
+		if (length < current_packet_size - offset) throw new Exception("getString() length is out of packet bounds");
+		
+		String output = new String();
+
+		for (int i = offset; i < offset + length; i++) {
+			
+			output += data[i];
+			
+		}
+		
+		return output;
 		
 	}
 	
@@ -144,6 +159,8 @@ public class TFTPPacket {
 		return data_part;
 		
 	}
+	
+	
 	
 	public void createRRQ(String filename) {
 		
@@ -167,11 +184,11 @@ public class TFTPPacket {
 
 	}
 	
-	public void createACK(String filename) {
+	public void createACK(char packet_num) {
 		
 		clear();
 		addWord(TFTP_OPCODE_ACK);
-		addWord((char)packet_num);
+		addWord(packet_num);
 
 	}	
 
@@ -196,31 +213,31 @@ public class TFTPPacket {
 	
 	public boolean isRRQ() {
 		
-		return (getWord(0) == TFTP_OPCODE_READ);		
+		return ((int)getWord(0) == TFTP_OPCODE_READ);		
 		
 	}
 	
 	public boolean isWRQ() {
-		
-		return (getWord(0) == TFTP_OPCODE_READ);
+
+		return ((int)getWord(0) == TFTP_OPCODE_WRITE);
 		
 	}
 	
 	public boolean isACK() {
 		
-		return (getWord(0) == TFTP_OPCODE_READ);
+		return ((int)getWord(0) == TFTP_OPCODE_ACK);
 		
 	}
 	
 	public boolean isData() {
 		
-		return (getWord(0) == TFTP_OPCODE_READ);
+		return ((int)getWord(0) == TFTP_OPCODE_DATA);
 		
 	}
 	
 	public boolean isError() {
 		
-		return (getWord(0) == TFTP_OPCODE_READ);
+		return ((int)getWord(0) == TFTP_OPCODE_ERROR);
 		
 	}
 	

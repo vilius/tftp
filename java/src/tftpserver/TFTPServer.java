@@ -25,7 +25,7 @@ public class TFTPServer {
 	    try {
 	    	serverSocket = new ServerSocket(port);
 	    } catch (IOException e) {
-	    	TFTPUtils.FatalError("Could not listen on port: " + port);
+	    	TFTPUtils.fatalError("Could not listen on port: " + port);
 	    }
 	    
 	    TFTPUtils.puts("Server successfully started. Listening on port " + port + " started");
@@ -35,8 +35,6 @@ public class TFTPServer {
 	    	try {
 	    		clientSocket = serverSocket.accept();
 	    	} catch (Exception e) {}
-	    	
-	    	TFTPUtils.puts("Connection from " + clientSocket);
 	    	
 	        TFTPServerClient client = new TFTPServerClient(this, clientSocket);
 	        
