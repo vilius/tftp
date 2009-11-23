@@ -2,4 +2,4 @@ C++ implementation of TFTP server and client
 
 Author: Vilius Paulauskas (vilius@pau.lt)
 
-This code is not a complete implementation of TFTP protocol. It should be used just as a guidance when developing/implementing TFTP protocol.
+This code is not a complete implementation of TFTP protocol. It should be used just as a guidance when developing/implementing TFTP protocol
