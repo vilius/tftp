@@ -10,13 +10,17 @@ public class TFTPServerUI {
 	 */
 	public static void main(String[] args) {
 
+		TFTPServer server;
 		File current_file = new File(".");
 		
 		TFTPUtils.puts("Starting server on port 5555");
 		
-		TFTPServer server = new TFTPServer(5555, current_file + "\\ftproot");
-		
-		server.shutdown();
+		try {
+			server = new TFTPServer(5555, current_file.getCanonicalPath() + "\\ftproot\\");
+			server.shutdown();
+		} catch (Exception e) {
+			TFTPUtils.puts("Unhandled exception was thrown");
+		}
 		
 	}
 

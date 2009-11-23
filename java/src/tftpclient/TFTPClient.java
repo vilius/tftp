@@ -115,7 +115,6 @@ public class TFTPClient extends Thread {
 		   			try {
 		   				
 		   				bytes_read = fin.read(data, 0, TFTPPacket.TFTP_PACKET_DATA_SIZE);
-		   				System.out.println((char)data[5] + "!!!!");
 		   				
 		   				if (bytes_read == -1) {
 		   					
@@ -148,10 +147,22 @@ public class TFTPClient extends Thread {
 		   	   			TFTPUtils.puts("Exception in sendFile() isACK()");		   	   			
 		   	   		}
 		   			
+		   		} else if (packet_ack.isError()) {
+		   			
+		   			try {
+		   				TFTPUtils.puts("Error packet received with message: " + packet_ack.getString(4, packet_ack.getSize()));
+		   			} catch (Exception e) {
+					}
+		   			disconnect();
+		   			
+		   			break;
+		   			
 		   		} else {
 		   			
-		   			TFTPUtils.fatalError("Unexpected packet");
+		   			TFTPUtils.puts("Unexpected packet");
 		   			disconnect();
+		   			
+		   			break;
 		   			
 		   		}
 		   		
@@ -260,7 +271,15 @@ public class TFTPClient extends Thread {
 						break;
 						
 					}
+					
+		   		} else if (packet_data.isError()) {
 						
+		   			try {
+		   				TFTPUtils.puts("Error packet received with message: " + packet_data.getString(4, packet_data.getSize()));
+		   			} catch (Exception e) {
+					}
+		   			disconnect();
+		   			
 		   		} else {
 		   			
 		   			TFTPUtils.puts("Unexpected packet");

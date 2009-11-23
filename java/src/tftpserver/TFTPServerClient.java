@@ -68,7 +68,9 @@ public class TFTPServerClient extends Thread {
 
 				if (file_exists != null && file_exists.exists()) {
 
-					TFTPUtils.clientMessage(this, "PUT failed. File already exists on server");
+					try {
+						TFTPUtils.clientMessage(this, "PUT failed. File already exists on server: " + server.ftproot + last_packet.getString(2, last_packet.getSize()));
+					} catch (Exception e) {}
 					
 					//- inform client about the error
 					TFTPPacket packet_error = new TFTPPacket();
@@ -106,7 +108,7 @@ public class TFTPServerClient extends Thread {
 					packet_ack.sendPacket(out);
 					TFTPUtils.clientMessage(this, "Initial ACK packet sent");
 					
-					packet_ack.dumpData();
+					//packet_ack.dumpData();
 					
 					TFTPPacket packet_data = new TFTPPacket();
 					
@@ -121,10 +123,13 @@ public class TFTPServerClient extends Thread {
 								
 							}
 							
+							TFTPUtils.clientMessage(this, "> Data packet received");
+							
 							fout.write(packet_data.getData(4));
 							
 							packet_ack.createACK(packet_data.getPacketNumber());
 							packet_ack.sendPacket(out);
+							TFTPUtils.clientMessage(this, "< Sending ACK packet");
 							
 							if (packet_data.getSize() < 4 + TFTPPacket.TFTP_PACKET_DATA_SIZE) {
 								

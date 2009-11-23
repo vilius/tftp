@@ -24,6 +24,8 @@ public class TFTPServer {
 		this.port = port;
 		this.ftproot = ftproot;
 		
+		clients = new Hashtable<Socket, TFTPServerClient>();
+		
 	    try {
 	    	serverSocket = new ServerSocket(port);
 	    } catch (IOException e) {
@@ -68,21 +70,37 @@ public class TFTPServer {
 		
 		TFTPUtils.puts("Removing client connection " + clientSocket.getInetAddress().getHostAddress());
 
-		try {
-			clients.get(clientSocket).fin.close();
-			clients.get(clientSocket).fout.close();
-			clients.get(clientSocket).in.close();
-			clients.get(clientSocket).out.close();
+		if (clients.get(clientSocket) != null) {
+			try {
+				clients.get(clientSocket).fin.close();
+			} catch (Exception ie) {}
 			
-			clients.get(clientSocket).interrupt();
+			try {
+				clients.get(clientSocket).fout.close();
+			} catch (Exception ie) {}
 			
-			clientSocket.close();
+			try {
+				clients.get(clientSocket).in.close();
+			} catch (Exception ie) {}
 			
-			clients.remove(clientSocket);
-			
-		} catch (IOException ie) {
-			//- its ok to have some errors :)
+			try {
+				clients.get(clientSocket).out.close();
+			} catch (Exception ie) {}			
+				
+			try {
+				clients.get(clientSocket).interrupt();
+			} catch (Exception ie) {}
 		}
+			
+		try {
+			clientSocket.close();
+		} catch (Exception ie) {}
+			
+		try {		
+			clients.remove(clientSocket);
+		} catch (Exception ie) {}
+			
+		
 		
 	}
 	
