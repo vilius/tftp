@@ -1,5 +1,8 @@
 package tftp;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+
 public class TFTPPacket {
 
 	static final char TFTP_OPCODE_READ 	= 1;
@@ -238,6 +241,43 @@ public class TFTPPacket {
 	public boolean isError() {
 		
 		return ((int)getWord(0) == TFTP_OPCODE_ERROR);
+		
+	}
+	
+	public boolean sendPacket(BufferedOutputStream out) {
+		
+		try {
+			out.write(data, 0, getSize());
+			out.flush();
+			return true;
+		} catch (Exception e) {
+			TFTPUtils.puts("Exception in sendPacket()");
+			return false;
+		}
+		
+	}
+	
+	public boolean getPacket(BufferedInputStream in) {
+		
+		clear();
+
+   		int bytes_read = 0;
+   		
+   		try {
+   			bytes_read = in.read(data, 0, TFTP_PACKET_MAX_SIZE);
+   			
+   			if (bytes_read == -1) {
+   	   			return false;
+   	   		}
+   			
+   			setSize(bytes_read);
+   			
+   		} catch (Exception e) {
+   			TFTPUtils.puts("Exception in getPacket()");
+   			return false;
+   		}
+   		
+   		return true;
 		
 	}
 	
