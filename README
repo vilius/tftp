@@ -1,0 +1,7 @@
+This is a simple implementation of TFTP protocol in Java and C++ languages, which I did as an assignment for Network Programming course.
+
+TFTP Server and TFTP Client are implemented in both languages.
+
+C++ implementation of TFTP is working on Unix and Windows.
+
+You can also use Java TFTP Server and C++ TFTP Client for communicating, or vise versa.
