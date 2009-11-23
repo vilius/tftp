@@ -4,4 +4,4 @@ TFTP Server and TFTP Client are implemented in both languages.
 
 C++ implementation of TFTP is working on Unix and Windows.
 
-You can also use Java TFTP Server and C++ TFTP Client for communicating, or vise versa.
+You can also use Java TFTP Server and C++ TFTP Client, or vise versa, for communicating.
