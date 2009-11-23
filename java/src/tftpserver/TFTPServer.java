@@ -1,6 +1,7 @@
 package tftpserver;
 
 import java.net.*;
+import java.util.Hashtable;
 import java.io.*;
 
 import tftp.*;
@@ -14,6 +15,8 @@ public class TFTPServer {
 	
 	protected ServerSocket serverSocket;
 	protected Socket clientSocket = null;
+	
+	protected Hashtable<Socket, TFTPServerClient> clients;
 
 	public TFTPServer(int port, String ftproot) {
 		
@@ -32,39 +35,64 @@ public class TFTPServer {
 	    while (true) {
 	    	
 	    	try {
+	    		
 	    		clientSocket = serverSocket.accept();
-	    	} catch (Exception e) {}
+	    		
+	    	} catch (Exception e) {
+	    		
+	    		TFTPUtils.fatalError("An exeption was thrown while accepting a client connection");
+	    		
+	    	}
 
-	        TFTPServerClient client = new TFTPServerClient(this, clientSocket);
+	    	if (clients.size() == MAX_CONNECTIONS) {
+	    	
+	    		TFTPPacket packet_error = new TFTPPacket();
+	    		packet_error.createError(0, "Server is full, please try again later");
+	    		try {
+	    			packet_error.sendPacket(new BufferedOutputStream(clientSocket.getOutputStream()));
+	    		} catch (Exception e) {
+					TFTPUtils.puts("Unable to send error message to client");
+				}
+	    		
+	    	} else {
+	    		
+	    		clients.put(clientSocket, new TFTPServerClient(this, clientSocket));
+	    		
+	    	}
 
 	    }
 	    
 	}
 	
-	void removeConnection(Socket clientSocket) {
+	public void removeConnection(Socket clientSocket) {
 		
-		// Synchronize so we don't mess up sendToAll() while it walks
-		// down the list of all output streamsa
-		/*synchronized (outputStreams) {
-			// Tell the world
-			System.out.println( "Removing connection to "+clientSocket);
-			// Remove it from our hashtable/list
-				outputStreams.remove(clientSocket);
-			// Make sure it's closed
-			try {
-				clientSocket.close();
-			} catch( IOException ie ) {
-				System.out.println( "Error closing "+s );
-				ie.printStackTrace();
-			}
-		}*/
+		TFTPUtils.puts("Removing client connection " + clientSocket.getInetAddress().getHostAddress());
+
+		try {
+			clients.get(clientSocket).fin.close();
+			clients.get(clientSocket).fout.close();
+			clients.get(clientSocket).in.close();
+			clients.get(clientSocket).out.close();
+			
+			clients.get(clientSocket).interrupt();
+			
+			clientSocket.close();
+			
+			clients.remove(clientSocket);
+			
+		} catch (IOException ie) {
+			//- its ok to have some errors :)
+		}
+		
 	}
 	
 	public void shutdown() {
 	
 		try {
 			serverSocket.close();
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			
+		}
 		
 	}
 	

@@ -11,6 +11,15 @@ public class TFTPPacket {
 	static final char TFTP_OPCODE_ACK 	= 4;
 	static final char TFTP_OPCODE_ERROR = 5;
 	
+	public static final String TFTP_ERROR_0 = "Not defined, see error message (if any)";
+	public static final String TFTP_ERROR_1 = "File not found";
+	public static final String TFTP_ERROR_2 = "Access violation";
+	public static final String TFTP_ERROR_3 = "Disk full or allocation exceeded";
+	public static final String TFTP_ERROR_4 = "Illegal TFTP operation";
+	public static final String TFTP_ERROR_5 = "Unknown transfer ID";
+	public static final String TFTP_ERROR_6 = "File already exists";
+	public static final String TFTP_ERROR_7 = "No such user";
+	
 	public static final int TFTP_PACKET_MAX_SIZE = 1024;
 	public static final int TFTP_PACKET_DATA_SIZE = 512;
 	

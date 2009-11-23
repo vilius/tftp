@@ -1,8 +1,5 @@
 package tftpclient;
 
-import java.util.Enumeration;
-import java.util.Vector;
-
 import tftp.TFTPUtils;
  
 import jargs.gnu.CmdLineParser;
@@ -33,7 +30,7 @@ public class TFTPClientUI {
         CmdLineParser.Option opt_upload = parser.addBooleanOption('u', "upload");
         CmdLineParser.Option opt_source = parser.addStringOption('s', "source");
         CmdLineParser.Option opt_dest 	= parser.addStringOption('d', "destination");
-        CmdLineParser.Option opt_port 	= parser.addIntegerOption('d', "destination");
+        CmdLineParser.Option opt_port 	= parser.addIntegerOption('p', "port");
  
         try {
             parser.parse(args);
@@ -44,7 +41,7 @@ public class TFTPClientUI {
             System.exit(2);
         }
  
-        Boolean help = (Boolean)parser.getOptionValue(opt_help);
+        Boolean help = (Boolean)parser.getOptionValue(opt_help, Boolean.FALSE);
         
         if (help) {
         	printUsage();

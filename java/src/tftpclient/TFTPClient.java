@@ -17,6 +17,7 @@ public class TFTPClient extends Thread {
 	public BufferedOutputStream out;
 	public BufferedInputStream in;
 	public DataInputStream fin;	
+	public DataOutputStream fout;	
 	
 	public TFTPServerClient.TClientRequest request;
 	
@@ -169,13 +170,29 @@ public class TFTPClient extends Thread {
 	public boolean getFile(String filename, String dest) {
 		
 		TFTPPacket packet_rrq, packet_ack, packet_data;
-		int bytes_read;
 		int packet_no;
-		byte[] data = new byte[TFTPPacket.TFTP_PACKET_DATA_SIZE];
+		
+		File file_exists = null;
+
+		try {
+
+			file_exists = new File(dest);
+
+		} catch (Exception e) {
+
+			TFTPUtils.fatalError(e.getMessage());
+
+		}
+
+		if (file_exists != null && file_exists.exists()) {
+
+			TFTPUtils.fatalError("Unable to download file to " + dest + ". Destination already exists in " + file_exists.getAbsolutePath());
+			
+		}
 		
 		try {
 			
-			fin = new DataInputStream(new FileInputStream(dest));
+			fout = new DataOutputStream(new FileOutputStream(dest));
 			
 		} catch (Exception e) {
 
@@ -224,58 +241,32 @@ public class TFTPClient extends Thread {
 		   			
 		   		}
 		   		
+		   		//- gavom duomenu paketa
 		   		if (packet_data.isData()) {
 		   			
 		   			if (packet_data.getPacketNumber() != (char)packet_no) {
 		   				TFTPUtils.puts("WRONG ORDER");
 		   			}
 		   			
-		   			TFTPUtils.puts("DATA received, sending ACK packet");
-		   			
-		   			for (int i = 0; i < TFTPPacket.TFTP_PACKET_DATA_SIZE; i++) data[i] = 0;
-		   			
-		   			bytes_read = 0;
-		   	   		
-		   			try {
-		   				
-		   				bytes_read = fin.read(data, 0, TFTPPacket.TFTP_PACKET_DATA_SIZE);
-		   				System.out.println((char)data[5] + "!!!!");
-		   				
-		   				if (bytes_read == -1) {
-		   					
-		   					TFTPUtils.puts("EOF in sendFile()");
-		   					
-		   	   	   		} else {
-		   	   	   			
-		   	   	   			packet_no++;
-		   	   	   			
-		   	   	   			packet_data.createData(packet_no, data, bytes_read);
-		   	   	   			packet_data.sendPacket(out);
-		   	   	   			
-		   	   	   			TFTPUtils.puts("Data packet sent");
-		   	   	   			packet_data.dumpData();
-		   	   	   			
-		   	   	   		}
-		   				
-		   				if (bytes_read < TFTPPacket.TFTP_PACKET_DATA_SIZE) {
-		   					
-		   					//- this is our last packet
-		   					
-		   					TFTPUtils.puts("File was successfully sent!");
-		   					disconnect();
-		   					
-		   					break mainloop;
-		   					
-		   				}
-		   				
-		   	   		} catch (Exception e) {
-		   	   			TFTPUtils.puts("Exception in sendFile() isACK()");		   	   			
-		   	   		}
-		   			
+					fout.write(packet_data.getData(4));
+
+					TFTPUtils.puts("DATA received, sending ACK packet");
+					packet_ack.createACK(packet_data.getPacketNumber());
+					packet_ack.sendPacket(out);
+						
+					if (packet_data.getSize() < 4 + TFTPPacket.TFTP_PACKET_DATA_SIZE) {
+						
+						TFTPUtils.puts("File transferred");
+						break;
+						
+					}
+						
 		   		} else {
 		   			
-		   			TFTPUtils.fatalError("Unexpected packet");
+		   			TFTPUtils.puts("Unexpected packet");
 		   			disconnect();
+		   			
+		   			break mainloop;
 		   			
 		   		}
 		   		
@@ -286,8 +277,6 @@ public class TFTPClient extends Thread {
             TFTPUtils.puts("IO Exception in thread: " + ioException.getMessage());
         	
         }
-		
-		return true;
 		
 		return true;
 		
@@ -302,6 +291,7 @@ public class TFTPClient extends Thread {
 			out.close();
 			in.close();
 			fin.close();
+			fout.close();
 		} catch (Exception e) {
 			
 		}
