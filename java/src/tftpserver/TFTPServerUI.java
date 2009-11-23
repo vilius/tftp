@@ -11,7 +11,7 @@ public class TFTPServerUI {
 
 		TFTPUtils.puts("Starting server on port 5555");
 		
-		TFTPServer server = new TFTPServer(5555, "./ftproot");
+		TFTPServer server = new TFTPServer(5555, "D:\\Users\\Vilius\\Desktop\\tftp\\java\\src\\tftpserver\\ftproot\\");
 		
 		server.shutdown();
 		

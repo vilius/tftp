@@ -2,8 +2,6 @@ package tftpserver;
 
 import java.io.*;
 import java.net.*;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 import tftp.TFTPPacket;
 import tftp.TFTPUtils;
@@ -24,7 +22,8 @@ public class TFTPServerClient extends Thread {
 	public TFTPPacket last_packet;
 	
 	public BufferedOutputStream out;
-	public BufferedInputStream in;	
+	public BufferedInputStream in;
+	public DataOutputStream fout;
 	
 	public TFTPServerClient(TFTPServer server, Socket socket) {
 		
@@ -77,6 +76,15 @@ public class TFTPServerClient extends Thread {
 
 				} else {
 
+					try {
+						fout = new DataOutputStream(
+								new FileOutputStream(server.ftproot + last_packet.getString(2, last_packet.getSize()))
+						);
+					} catch (Exception e) {
+						TFTPUtils.puts("Unable to open file for writing");
+						//TODO: investigate
+					}
+					
 					TFTPUtils.clientMessage(this, "Starting PUT transfer");
 					
 					TFTPPacket packet_ack = new TFTPPacket();
@@ -86,7 +94,6 @@ public class TFTPServerClient extends Thread {
 					packet_ack.createACK((char)0);
 					
 					packet_ack.sendPacket(out);
-					
 					TFTPUtils.puts("Initial ACK packet sent");
 					
 					packet_ack.dumpData();
@@ -96,8 +103,19 @@ public class TFTPServerClient extends Thread {
 					while (true) {
 						
 						if (packet_data.getPacket(in)) {
-						
 							packet_data.dumpData();
+							fout.write(packet_data.getData(4));
+							
+							
+							packet_ack.createACK(packet_data.getPacketNumber());
+							packet_ack.sendPacket(out);
+							
+							if (packet_data.getSize() < 4 + TFTPPacket.TFTP_PACKET_DATA_SIZE) {
+								
+								TFTPUtils.puts("File transferred");
+								break;
+								
+							}
 							
 						} else {
 							
@@ -115,14 +133,20 @@ public class TFTPServerClient extends Thread {
 	   		TFTPUtils.puts("Content: " + new String(last_packet.data));
 	   		
 		} catch( EOFException ie ) {
-			// This doesn't need an error message
+			
 		} catch( IOException ie ) {
-			// This does; tell the world!
 			ie.printStackTrace();
 		} finally {
-			// The connection is closed for one reason or another,
-			// so have the server dealing with it
+
+			try {
+				fout.close();
+				in.close();
+				out.close();
+			} catch (Exception e) {
+				
+			}
 			server.removeConnection(socket);
+			
 		}
 	   
    }

@@ -2,7 +2,6 @@ package tftpserver;
 
 import java.net.*;
 import java.io.*;
-import java.nio.channels.*;
 
 import tftp.*;
 
@@ -35,11 +34,9 @@ public class TFTPServer {
 	    	try {
 	    		clientSocket = serverSocket.accept();
 	    	} catch (Exception e) {}
-	    	
+
 	        TFTPServerClient client = new TFTPServerClient(this, clientSocket);
-	        
-	        
-	        
+
 	    }
 	    
 	}

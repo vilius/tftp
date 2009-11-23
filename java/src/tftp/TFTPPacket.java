@@ -89,16 +89,28 @@ public class TFTPPacket {
 	}
 	
 	public boolean addString(String s) {
-
-		//TODO: implement
 		
-		return false;
+		byte[] b = new byte[s.length()];
+		b = s.getBytes();
+
+		for (int i = 0; i < s.length(); i++) {
+
+			if (!addByte(b[i])) { 
+
+				return false;
+
+			}
+
+		}
+
+		return true;
 		
 	}
 	
 	public boolean addMemory(byte[] buf, int buf_size) {
 
 		if (current_packet_size + buf_size >= TFTP_PACKET_MAX_SIZE)	{
+			TFTPUtils.puts("Packet size exceeded");
 			return false;
 		}
 		
@@ -127,19 +139,19 @@ public class TFTPPacket {
 	}
 	
 	public String getString(int offset, int length) throws Exception {
-	
-		//TODO: implement
-		
+
 		if (offset > current_packet_size) throw new Exception("getString() out of packet bounds");
-		
+
 		if (length < current_packet_size - offset) throw new Exception("getString() length is out of packet bounds");
-		
+
 		String output = new String();
 
 		for (int i = offset; i < offset + length; i++) {
 			
-			output += data[i];
-			
+			if (data[i] == 0) break; //zero-terminated
+
+			output += (char)data[i];
+
 		}
 		
 		return output;
@@ -154,10 +166,13 @@ public class TFTPPacket {
 	
 	public byte[] getData(int offset) {
 		
-		byte[] data_part = new byte[TFTP_OPCODE_ERROR];
+		if (!isData()) return null;
 		
-		for (int i = offset; i < current_packet_size; i++)
-			data_part[i] = data[i];
+		byte[] data_part = new byte[getSize() - 4];
+		
+		for (int i = offset; i < current_packet_size; i++) {
+			data_part[i-offset] = data[i];
+		}
 		
 		return data_part;
 		
@@ -283,41 +298,3 @@ public class TFTPPacket {
 	
 
 }
-
-
-/**
-
-	public:
-
-		public boolean addByte(BYTE b);
-		public boolean addWord(WORD w);
-		public boolean addString(char* str);
-		public boolean addMemory(char* buffer, int len);
-		
-		BYTE getByte(int offset);
-		WORD getWord(int offset = 0);
-		public boolean getString(int offset, char* buffer, int length);
-		WORD getNumber();
-		unsigned char* getData(int offset = 0);
-		public boolean copyData(int offset, char* dest, int length);
-
-		public boolean createRRQ(char* filename);
-		public boolean createWRQ(char* filename);
-		public boolean createACK(int packet_num);
-		public boolean createData(int block, char* data, int data_size);
-		public boolean createError(int error_code, char* message);
-
-		public boolean sendPacket(TFTP_Packet*);
-
-		public boolean isRRQ();
-		public boolean isWRQ();
-		public boolean isACK();
-		public boolean isData();
-		public boolean isError();
-
-};
-
-#endif
-
-
-*/
